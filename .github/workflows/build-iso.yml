@@ -8,15 +8,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Build inside a real Debian bookworm container so live-build matches the target.
+    container:
+      image: debian:bookworm
+      options: --privileged
     timeout-minutes: 90
     steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            live-build debootstrap xorriso squashfs-tools rsync wget curl \
+            ca-certificates git nodejs npm sudo procps
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
 
       - name: Build WinLaunch (Linux)
         run: |
@@ -26,12 +32,7 @@ jobs:
           mkdir -p ../config/includes.chroot/opt/winlaunch
           cp -r out/WinLaunch-linux-x64/. ../config/includes.chroot/opt/winlaunch/
 
-      - name: Install live-build
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y live-build
-
-      - name: Permissions
+      - name: Set permissions
         run: |
           chmod +x config/hooks/live/*.hook.chroot || true
           chmod +x config/includes.chroot/opt/winlaunch/*.sh || true
@@ -39,8 +40,8 @@ jobs:
 
       - name: Build ISO
         run: |
-          sudo sh auto/config
-          sudo lb build
+          sh auto/config
+          lb build
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
