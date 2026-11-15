@@ -8,6 +8,8 @@ lb config noauto \
   --architecture amd64 \
   --archive-areas "main contrib non-free non-free-firmware" \
   --security false \
+  --firmware-chroot false \
+  --firmware-binary false \
   --debian-installer none \
   --iso-application "WinLaunchOS" \
   --iso-volume "WinLaunchOS" \
