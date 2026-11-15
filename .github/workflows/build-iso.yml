@@ -1,0 +1,51 @@
+name: Build WinLaunchOS ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build WinLaunch (Linux)
+        run: |
+          cd app
+          npm install
+          npx @electron/packager . WinLaunch --platform=linux --arch=x64 --out=out --overwrite --asar
+          mkdir -p ../config/includes.chroot/opt/winlaunch
+          cp -r out/WinLaunch-linux-x64/. ../config/includes.chroot/opt/winlaunch/
+
+      - name: Install live-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build
+
+      - name: Permissions
+        run: |
+          chmod +x config/hooks/live/*.hook.chroot || true
+          chmod +x config/includes.chroot/opt/winlaunch/*.sh || true
+          chmod +x config/includes.chroot/opt/winlaunch/WinLaunch || true
+
+      - name: Build ISO
+        run: |
+          sudo sh auto/config
+          sudo lb build
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinLaunchOS-ISO
+          path: "*.iso"
+          if-no-files-found: error
+          retention-days: 7
