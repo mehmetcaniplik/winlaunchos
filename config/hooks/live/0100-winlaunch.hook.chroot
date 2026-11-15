@@ -1,0 +1,47 @@
+#!/bin/sh
+# WinLaunchOS setup hook (runs inside the image during build)
+set -e
+
+# make launcher executable
+chmod +x /opt/winlaunch/WinLaunch /opt/winlaunch/start-winlaunch.sh 2>/dev/null || true
+
+# --- Locales: Türkçe + İngilizce ---
+if [ -f /etc/locale.gen ]; then
+  sed -i 's/^# *tr_TR.UTF-8 UTF-8/tr_TR.UTF-8 UTF-8/' /etc/locale.gen || true
+  sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen || true
+  locale-gen || true
+fi
+
+# --- X session: WinLaunch as the desktop shell ---
+mkdir -p /usr/share/xsessions
+cat > /usr/share/xsessions/winlaunch.desktop <<EOF
+[Desktop Entry]
+Name=WinLaunch OS
+Comment=WinLaunch launcher session
+Exec=/opt/winlaunch/start-winlaunch.sh
+Type=Application
+DesktopNames=WinLaunch
+EOF
+
+# --- Auto-login straight into WinLaunch via LightDM ---
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/50-winlaunchos.conf <<EOF
+[Seat:*]
+autologin-user=user
+autologin-user-timeout=0
+autologin-session=winlaunch
+user-session=winlaunch
+greeter-session=lightdm-gtk-greeter
+EOF
+
+# --- Let the live user reboot without a password (kiosk feel) ---
+if [ -d /etc/sudoers.d ]; then
+  echo 'user ALL=(ALL) NOPASSWD: /bin/systemctl reboot, /sbin/reboot, /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff' > /etc/sudoers.d/winlaunch || true
+  chmod 440 /etc/sudoers.d/winlaunch || true
+fi
+
+# --- Make sure networking + display manager start on boot ---
+systemctl enable NetworkManager 2>/dev/null || true
+systemctl enable lightdm 2>/dev/null || true
+
+echo "WinLaunchOS hook tamam."

@@ -1,0 +1,14 @@
+#!/bin/sh
+# WinLaunchOS — live-build configuration
+set -e
+
+lb config noauto \
+  --mode debian \
+  --distribution bookworm \
+  --architecture amd64 \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --debian-installer none \
+  --iso-application "WinLaunchOS" \
+  --iso-volume "WinLaunchOS" \
+  --bootappend-live "boot=live components quiet splash username=user locales=tr_TR.UTF-8 keyboard-layouts=tr,us" \
+  "${@}"

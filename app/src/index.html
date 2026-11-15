@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinLaunch</title>
+<style>
+:root{
+  --accent:#4f8cff;
+  --bg:#0b0d13;
+  --bg2:#12151f;
+  --glass:rgba(22,26,38,.72);
+  --glass-brd:rgba(255,255,255,.09);
+  --text:#eef1f7;
+  --muted:#9aa3b5;
+  --radius:16px;
+  --wallpaper:linear-gradient(135deg,#1b2440 0%,#0b0d13 55%,#121a2e 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,"Segoe UI",system-ui,sans-serif;color:var(--text);background:var(--bg)}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+
+/* ---------- top window bar (frameless) ---------- */
+#titlebar{position:fixed;top:0;left:0;right:0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;z-index:9000;-webkit-app-region:drag;background:rgba(0,0,0,.18);backdrop-filter:blur(14px)}
+#titlebar .tdot{-webkit-app-region:no-drag;width:13px;height:13px;border-radius:50%;margin-right:8px;display:inline-block}
+.tdot.r{background:#ff5f57}.tdot.y{background:#febc2e}.tdot.g{background:#28c840}
+#titlebar .ttl{font-size:12px;color:var(--muted);letter-spacing:.4px}
+#titlebar .right{-webkit-app-region:no-drag;display:flex;gap:6px;font-size:12px;color:var(--muted)}
+
+/* ---------- generic screens ---------- */
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:var(--bg);z-index:100}
+.center{max-width:460px;width:90%;text-align:center}
+h1.big{font-size:40px;font-weight:700;letter-spacing:-1px;margin-bottom:6px}
+.logo{width:92px;height:92px;border-radius:24px;margin:0 auto 22px;background:linear-gradient(135deg,var(--accent),#7d5cff);display:flex;align-items:center;justify-content:center;font-size:46px;box-shadow:0 20px 60px rgba(79,140,255,.35)}
+.sub{color:var(--muted);font-size:15px;line-height:1.5;margin-bottom:28px}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px 26px;font-size:15px;font-weight:600;transition:.15s;box-shadow:0 8px 24px rgba(79,140,255,.35)}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.btn:active{transform:translateY(0)}
+.btn.ghost{background:rgba(255,255,255,.07);box-shadow:none;color:var(--text)}
+.btn.wide{width:100%}
+.row{display:flex;gap:10px;margin-top:10px}
+
+/* progress */
+.bar{height:6px;width:100%;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin:22px 0 8px}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#7d5cff);transition:width .25s}
+
+/* list choices */
+.list{width:100%;text-align:left;margin:4px 0 22px;max-height:260px;overflow:auto}
+.opt{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--glass-brd);border-radius:12px;margin-bottom:8px;background:var(--glass);transition:.12s}
+.opt:hover{border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:rgba(79,140,255,.14)}
+.opt .ic{font-size:20px}.opt small{color:var(--muted);display:block;font-size:12px}
+.opt .meta{flex:1}
+.input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--glass-brd);background:rgba(0,0,0,.25);color:var(--text);font-size:15px;margin-bottom:12px;-webkit-user-select:text;user-select:text}
+.input:focus{outline:none;border-color:var(--accent)}
+.terms{text-align:left;font-size:13px;color:var(--muted);line-height:1.6;max-height:220px;overflow:auto;border:1px solid var(--glass-brd);border-radius:12px;padding:14px;margin-bottom:16px;background:var(--glass)}
+.check{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:18px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* modal */
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:500}
+.modal{background:var(--bg2);border:1px solid var(--glass-brd);border-radius:18px;padding:26px;width:380px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.modal h3{font-size:19px;margin-bottom:8px}
+.modal p{color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.5}
+
+/* ---------- DESKTOP ---------- */
+#desktop{position:fixed;inset:0;background:var(--wallpaper);z-index:50;overflow:hidden}
+#menubar{position:fixed;top:34px;left:0;right:0;height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--glass-brd);z-index:200;font-size:13px}
+#menubar .mleft{display:flex;gap:18px;align-items:center}
+#menubar .mleft b{font-weight:700}
+#menubar .mleft span{color:var(--muted)}
+#menubar .mleft span:hover{color:var(--text)}
+#menubar .mright{display:flex;gap:14px;align-items:center;color:var(--muted)}
+#menubar .mright span:hover{color:var(--text)}
+
+/* desktop icons */
+#deskicons{position:absolute;top:80px;right:20px;display:flex;flex-direction:column;gap:18px}
+.deskicon{width:84px;text-align:center;cursor:pointer}
+.deskicon .ic{width:58px;height:58px;margin:0 auto 4px;border-radius:14px;background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:28px;border:1px solid var(--glass-brd)}
+.deskicon span{font-size:12px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.deskicon:hover .ic{border-color:var(--accent)}
+
+/* dock */
+#dock{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:10px;padding:10px 14px;background:var(--glass);backdrop-filter:blur(26px);border:1px solid var(--glass-brd);border-radius:22px;z-index:300;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.dockapp{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;background:linear-gradient(145deg,#222838,#171b27);transition:.14s;position:relative;cursor:pointer}
+.dockapp:hover{transform:translateY(-10px) scale(1.12)}
+.dockapp .tip{position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.12s}
+.dockapp:hover .tip{opacity:1}
+.dockapp.on::after{content:"";position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--text)}
+.dock-sep{width:1px;margin:6px 2px;background:var(--glass-brd)}
+
+/* launchpad */
+#launchpad{position:fixed;inset:0;background:rgba(10,12,18,.86);backdrop-filter:blur(30px);z-index:400;display:none;flex-direction:column;align-items:center;padding-top:80px}
+#launchpad .lpsearch{width:340px;margin-bottom:26px}
+#lpgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:28px 34px;max-width:1040px;width:92%;overflow:auto;padding-bottom:40px}
+.lpapp{text-align:center;cursor:pointer}
+.lpapp .ic{width:66px;height:66px;margin:0 auto 7px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;background:linear-gradient(145deg,#232a3b,#161a26);border:1px solid var(--glass-brd);transition:.14s}
+.lpapp:hover .ic{transform:scale(1.09);border-color:var(--accent)}
+.lpapp span{font-size:12px;color:var(--text)}
+
+/* windows */
+.appwin{position:absolute;top:120px;left:160px;width:620px;height:430px;background:var(--bg2);border:1px solid var(--glass-brd);border-radius:14px;box-shadow:0 30px 90px rgba(0,0,0,.6);z-index:350;display:flex;flex-direction:column;overflow:hidden;min-width:320px;min-height:220px}
+.appwin .wbar{height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(0,0,0,.25);cursor:move}
+.appwin .wbar .wdot{width:12px;height:12px;border-radius:50%}
+.appwin .wbar .wt{font-size:13px;color:var(--muted);margin-left:8px}
+.appwin .wbody{flex:1;overflow:auto;padding:16px}
+.appwin .wbody.pad0{padding:0}
+
+/* context menu */
+#ctx{position:fixed;z-index:800;background:var(--glass);backdrop-filter:blur(26px);border:1px solid var(--glass-brd);border-radius:12px;padding:6px;min-width:200px;box-shadow:0 20px 60px rgba(0,0,0,.55);display:none}
+#ctx .ci{padding:9px 12px;border-radius:8px;font-size:13px;display:flex;justify-content:space-between;gap:20px;cursor:pointer}
+#ctx .ci:hover{background:var(--accent);color:#fff}
+#ctx .ci small{color:var(--muted)}
+#ctx .ci:hover small{color:#dbe7ff}
+#ctx .sep{height:1px;background:var(--glass-brd);margin:5px 4px}
+
+/* widgets inside apps */
+.calc .scr{font-size:34px;text-align:right;padding:18px;background:rgba(0,0,0,.3);border-radius:10px;margin-bottom:12px;min-height:30px;-webkit-user-select:text}
+.calc .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.calc button{padding:16px;border:none;border-radius:10px;background:#2a3142;color:#fff;font-size:17px}
+.calc button.op{background:var(--accent)}
+.calc button:hover{filter:brightness(1.15)}
+.note{width:100%;height:100%;background:transparent;border:none;color:var(--text);font-size:15px;resize:none;-webkit-user-select:text;user-select:text}
+.note:focus{outline:none}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--glass-brd)}
+.swatch{display:flex;gap:8px}
+.swatch .s{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+.swatch .s.sel{border-color:#fff}
+.term{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#8fe39a;background:#000;height:100%;padding:12px;-webkit-user-select:text;user-select:text}
+.term .in{background:transparent;border:none;color:#8fe39a;font-family:inherit;font-size:13px;width:80%;-webkit-user-select:text}
+.term .in:focus{outline:none}
+.clockbig{font-size:54px;text-align:center;margin:30px 0 6px;font-variant-numeric:tabular-nums}
+.clocksub{text-align:center;color:var(--muted)}
+.todo-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--glass-brd);font-size:14px}
+.todo-item.done{opacity:.5;text-decoration:line-through}
+table.cal{width:100%;border-collapse:collapse;text-align:center}
+table.cal th{color:var(--muted);font-size:12px;padding:6px}
+table.cal td{padding:8px;font-size:13px;border-radius:8px}
+table.cal td.today{background:var(--accent);color:#fff}
+.scroll{overflow:auto}
+
+/* ---------- NEW: spotlight ---------- */
+#spotlight{position:fixed;inset:0;z-index:700;display:none;align-items:flex-start;justify-content:center;padding-top:160px;background:rgba(0,0,0,.35);backdrop-filter:blur(8px)}
+#spotbox{width:560px;max-width:92%;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--glass-brd);border-radius:16px;box-shadow:0 30px 90px rgba(0,0,0,.6);overflow:hidden}
+#spotin{width:100%;padding:18px 20px;background:transparent;border:none;color:var(--text);font-size:20px;-webkit-user-select:text;user-select:text}
+#spotin:focus{outline:none}
+#spotres{max-height:360px;overflow:auto;border-top:1px solid var(--glass-brd)}
+.spotrow{display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer}
+.spotrow.sel,.spotrow:hover{background:var(--accent);color:#fff}
+.spotrow .ic{font-size:22px}.spotrow small{color:var(--muted);display:block;font-size:11px}
+.spotrow.sel small,.spotrow:hover small{color:#e6efff}
+
+/* ---------- NEW: notification center ---------- */
+#notif{position:fixed;top:64px;right:0;bottom:0;width:320px;background:var(--glass);backdrop-filter:blur(28px);border-left:1px solid var(--glass-brd);z-index:600;transform:translateX(105%);transition:.25s;padding:18px;overflow:auto}
+#notif.open{transform:translateX(0)}
+#notif h2{font-size:34px;font-weight:700;margin-bottom:2px}
+#notif .nd{color:var(--muted);margin-bottom:16px}
+.ncard{background:rgba(255,255,255,.06);border:1px solid var(--glass-brd);border-radius:14px;padding:13px 15px;margin-bottom:10px}
+.ncard .nt{font-size:13px;font-weight:600;margin-bottom:3px;display:flex;justify-content:space-between}
+.ncard .nt small{color:var(--muted);font-weight:400}
+.ncard .nb{font-size:12px;color:var(--muted);line-height:1.4}
+.nwidget{background:rgba(255,255,255,.06);border:1px solid var(--glass-brd);border-radius:14px;padding:15px;margin-bottom:10px;text-align:center}
+
+/* ---------- NEW: desktop widgets ---------- */
+.dwidget{position:absolute;background:var(--glass);backdrop-filter:blur(22px);border:1px solid var(--glass-brd);border-radius:18px;padding:16px;z-index:60;box-shadow:0 14px 40px rgba(0,0,0,.35);cursor:move;min-width:150px}
+.dwidget .wx{position:absolute;top:6px;right:9px;font-size:12px;color:var(--muted);cursor:pointer;opacity:0;transition:.12s}
+.dwidget:hover .wx{opacity:1}
+.dwidget .wclock{font-size:30px;font-variant-numeric:tabular-nums;text-align:center}
+.dwidget .wlabel{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
+.dwidget textarea{width:150px;height:84px;background:transparent;border:none;color:var(--text);resize:none;font-size:13px;-webkit-user-select:text;user-select:text}
+.dwidget textarea:focus{outline:none}
+
+/* ---------- NEW: file explorer ---------- */
+.fe{display:flex;height:100%}
+.fe .side{width:150px;border-right:1px solid var(--glass-brd);padding:8px;overflow:auto}
+.fe .side .si{padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;gap:8px}
+.fe .side .si:hover,.fe .side .si.on{background:rgba(79,140,255,.18)}
+.fe .main{flex:1;display:flex;flex-direction:column}
+.fe .path{padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--glass-brd);display:flex;align-items:center;gap:8px}
+.fe .path .back{cursor:pointer;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.06)}
+.fe .grid{flex:1;overflow:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,88px);gap:18px;align-content:start}
+.fe .item{text-align:center;cursor:pointer;padding:6px;border-radius:10px}
+.fe .item:hover{background:rgba(255,255,255,.07)}
+.fe .item .ic{font-size:38px}.fe .item span{font-size:11px;word-break:break-word}
+
+/* snap hint */
+#snaphint{position:fixed;z-index:340;background:rgba(79,140,255,.25);border:2px solid var(--accent);border-radius:14px;display:none;pointer-events:none;transition:.08s;top:64px}
+
+/* animated wallpapers */
+#desktop.wp-aurora{background:linear-gradient(130deg,#1b2440,#3a1b4e,#0f3d3e,#121a2e);background-size:400% 400%;animation:wpmove 20s ease infinite}
+#desktop.wp-sunset{background:linear-gradient(130deg,#2d1b4e,#7a2a4e,#e67e2244,#0b0d13);background-size:320% 320%;animation:wpmove 24s ease infinite}
+#desktop.wp-ocean{background:linear-gradient(130deg,#0f3d3e,#133a5e,#0a1a3e,#0b0d13);background-size:360% 360%;animation:wpmove 26s ease infinite}
+#desktop.wp-dream{background:linear-gradient(130deg,#3a1b4e,#9b59b633,#4f8cff22,#121a2e);background-size:360% 360%;animation:wpmove 22s ease infinite}
+@keyframes wpmove{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+</style>
+</head>
+<body>
+
+<!-- ===== TITLEBAR ===== -->
+<div id="titlebar">
+  <div style="-webkit-app-region:no-drag;display:flex;align-items:center">
+    <span class="tdot r" onclick="WL.close()"></span>
+    <span class="tdot y" onclick="WL.min()"></span>
+    <span class="tdot g" onclick="WL.full()"></span>
+    <span class="ttl" style="margin-left:6px">WinLaunch</span>
+  </div>
+  <div class="right"><span id="tbclock"></span></div>
+</div>
+
+<!-- ===== 1) LAUNCH SCREEN ===== -->
+<div id="s-launch" class="screen">
+  <div class="center">
+    <div class="logo">⚡</div>
+    <h1 class="big">WinLaunch</h1>
+    <p class="sub">Kurulum tamamlandı. Launch modunu başlatmak için aşağıdaki tuşa bas.</p>
+    <button class="btn wide" onclick="startLaunch()">Launch Modunu Başlat</button>
+    <p class="sub" style="margin-top:18px;font-size:12px">Sürüm 1.0.0 · WinLogon ve Explorer'a dokunmaz</p>
+  </div>
+</div>
+
+<!-- ===== 2) LOADING (pre-restart) ===== -->
+<div id="s-loading" class="screen hidden">
+  <div class="center">
+    <div class="logo" id="loadlogo">⚙️</div>
+    <h1 class="big" style="font-size:26px">Yükleniyor…</h1>
+    <div class="bar"><i id="loadbar"></i></div>
+    <p class="sub" id="loadtxt">Sistem dosyaları hazırlanıyor</p>
+  </div>
+</div>
+
+<!-- ===== BOOT (after restart) ===== -->
+<div id="s-boot" class="screen hidden">
+  <div class="center">
+    <div class="logo">⚡</div>
+    <div class="bar" style="width:220px;margin:30px auto 0"><i id="bootbar"></i></div>
+  </div>
+</div>
+
+<!-- ===== 3) LANGUAGE ===== -->
+<div id="s-lang" class="screen hidden">
+  <div class="center">
+    <div class="logo">🌐</div>
+    <h1 class="big" style="font-size:28px">Dil Seç</h1>
+    <p class="sub">Select your language</p>
+    <div class="list" id="langlist"></div>
+    <button class="btn wide" onclick="go('s-wifi')">Devam</button>
+  </div>
+</div>
+
+<!-- ===== 4) WIFI ===== -->
+<div id="s-wifi" class="screen hidden">
+  <div class="center">
+    <div class="logo">📶</div>
+    <h1 class="big" style="font-size:28px">WiFi Bağlantısı</h1>
+    <p class="sub">Bir ağ seç</p>
+    <div class="list" id="wifilist"></div>
+    <div class="row">
+      <button class="btn ghost" style="flex:1" onclick="go('s-cloud')">Şimdilik Atla</button>
+      <button class="btn" style="flex:1" onclick="go('s-cloud')">Devam</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 5) CLOUD SERVICE ===== -->
+<div id="s-cloud" class="screen hidden">
+  <div class="center">
+    <div class="logo">☁️</div>
+    <h1 class="big" style="font-size:26px">Jaron Jaski Cloud Service</h1>
+    <p class="sub">Devam etmek için sözleşmeyi kabul et</p>
+    <div class="terms">
+      <b>Jaron Jaski Cloud Service — Kullanım Koşulları</b><br><br>
+      Bu yazılım yalnızca normal bir uygulama olarak çalışır. Windows oturum açma servisine (WinLogon) veya Explorer kabuğuna müdahale etmez, değiştirmez veya devre dışı bırakmaz.<br><br>
+      WinLaunch; profil, tema ve uygulama tercihlerinizi yalnızca bu cihazda, yerel olarak saklar. Hiçbir veri üçüncü kişilerle paylaşılmaz.<br><br>
+      Oluşturduğunuz kullanıcı adı ve şifre yalnızca WinLaunch arayüzünü kişiselleştirmek içindir; Windows hesabınızın şifresi değildir ve onun yerine geçmez.<br><br>
+      Yazılımı kullanarak bu koşulları kabul etmiş sayılırsınız.
+    </div>
+    <label class="check"><input type="checkbox" id="agree" onchange="document.getElementById('cloudnext').disabled=!this.checked"> Okudum ve kabul ediyorum</label>
+    <button class="btn wide" id="cloudnext" disabled onclick="go('s-profile')">Kabul Et ve Devam</button>
+  </div>
+</div>
+
+<!-- ===== 6) PROFILE ===== -->
+<div id="s-profile" class="screen hidden">
+  <div class="center">
+    <div class="logo">👤</div>
+    <h1 class="big" style="font-size:28px">Profilini Oluştur</h1>
+    <p class="sub">Bu bilgiler yalnızca WinLaunch içindir</p>
+    <input class="input" id="pfname" placeholder="Kullanıcı adı" autocomplete="off">
+    <input class="input" id="pfpass" type="password" placeholder="Şifre oluştur" autocomplete="new-password">
+    <input class="input" id="pfpass2" type="password" placeholder="Şifre (tekrar)" autocomplete="new-password">
+    <p class="sub" id="pferr" style="color:#ff7b7b;min-height:16px;margin:0 0 10px"></p>
+    <button class="btn wide" onclick="createProfile()">Oluştur ve Başla</button>
+  </div>
+</div>
+
+<!-- ===== LOCK / LOGIN (own logon, NOT windows) ===== -->
+<div id="s-lock" class="screen hidden" style="background:var(--wallpaper)">
+  <div class="center">
+    <div class="logo" id="lockav">👤</div>
+    <h1 class="big" style="font-size:24px" id="lockname">Kullanıcı</h1>
+    <p class="sub">WinLaunch oturumu · (Windows girişi değildir)</p>
+    <input class="input" id="lockpass" type="password" placeholder="Şifre" style="max-width:260px;margin:0 auto 12px" onkeydown="if(event.key==='Enter')tryUnlock()">
+    <p class="sub" id="lockerr" style="color:#ff7b7b;min-height:16px;margin:0 0 10px"></p>
+    <button class="btn" onclick="tryUnlock()">Giriş</button>
+    <div style="margin-top:14px"><span class="sub" style="cursor:pointer;text-decoration:underline" onclick="switchUser()">Kullanıcı değiştir</span></div>
+  </div>
+</div>
+
+<!-- ===== DESKTOP ===== -->
+<div id="desktop" class="hidden">
+  <div id="menubar">
+    <div class="mleft">
+      <b></b>
+      <b id="mbuser" onclick="switchUser()" style="cursor:pointer">WinLaunch</b>
+      <span onclick="openApp('files')">Dosya</span>
+      <span onclick="openApp('settings')">Görünüm</span>
+      <span onclick="openApp('about')">Yardım</span>
+    </div>
+    <div class="mright">
+      <span onclick="openApp('battery')">🔋 86%</span>
+      <span onclick="openApp('wifiapp')">📶</span>
+      <span onclick="openSpotlight()">🔍</span>
+      <span id="mbclock" onclick="toggleNotif()" style="cursor:pointer"></span>
+      <span onclick="lockNow()" title="Kilitle">🔒</span>
+    </div>
+  </div>
+
+  <div id="deskicons"></div>
+
+  <!-- windows mount here -->
+  <div id="winroot"></div>
+
+  <!-- dock -->
+  <div id="dock"></div>
+</div>
+
+<!-- launchpad -->
+<div id="launchpad">
+  <input class="input lpsearch" id="lpsearch" placeholder="Ara…" oninput="renderLaunchpad(this.value)">
+  <div id="lpgrid"></div>
+</div>
+
+<!-- NEW: spotlight -->
+<div id="spotlight"><div id="spotbox"><input id="spotin" placeholder="Spotlight Arama…  (uygulama, komut, hesaplama)" oninput="spotSearch(this.value)" onkeydown="spotKey(event)"><div id="spotres"></div></div></div>
+
+<!-- NEW: notification center -->
+<div id="notif"></div>
+
+<!-- NEW: window snap hint -->
+<div id="snaphint"></div>
+
+<!-- context menu -->
+<div id="ctx"></div>
+
+<!-- modal mount -->
+<div id="modalroot"></div>
+
+<script>
+/* ============================================================
+   WinLaunch — safe launcher (no WinLogon / Explorer hijack)
+   ============================================================ */
+const WL = {
+  min:()=>window.winlaunch&&winlaunch.minimize(),
+  full:()=>window.winlaunch&&winlaunch.toggleFullscreen(),
+  close:()=>window.winlaunch&&winlaunch.close(),
+  restart:()=>window.winlaunch?winlaunch.restart():Promise.resolve({simulated:true}),
+  setAutostart:(on)=>window.winlaunch?winlaunch.setAutostart(on):Promise.resolve(false),
+  autostartStatus:()=>window.winlaunch?winlaunch.autostartStatus():Promise.resolve(false),
+  kioskSet:(on)=>window.winlaunch?winlaunch.kioskSet(on):Promise.resolve(!!on),
+  sysStats:()=>window.winlaunch?winlaunch.sysStats():Promise.resolve(null),
+  screenshot:()=>window.winlaunch?winlaunch.screenshot():Promise.resolve({ok:false}),
+  clipGet:()=>window.winlaunch?winlaunch.clipGet():Promise.resolve([]),
+  clipSet:(t)=>window.winlaunch?winlaunch.clipSet(t):Promise.resolve(false),
+  clipClear:()=>window.winlaunch?winlaunch.clipClear():Promise.resolve(false),
+  openUrl:(u)=>window.winlaunch?winlaunch.openUrl(u):window.open(u,'_blank'),
+};
+function mediaURL(p){return 'wlmedia://load/?p='+encodeURIComponent(p);}
+const $=s=>document.querySelector(s);
+const store={
+  get:(k,d)=>{try{return JSON.parse(localStorage.getItem('wl_'+k))??d}catch(e){return d}},
+  set:(k,v)=>localStorage.setItem('wl_'+k,JSON.stringify(v))
+};
+
+/* ---------- screen router ---------- */
+const SCREENS=['s-launch','s-loading','s-boot','s-lang','s-wifi','s-cloud','s-profile','s-lock'];
+function go(id){
+  SCREENS.forEach(s=>$('#'+s).classList.add('hidden'));
+  $('#desktop').classList.add('hidden');
+  if(id==='desktop'){ $('#desktop').classList.remove('hidden'); mountDesktop(); return; }
+  $('#'+id).classList.remove('hidden');
+}
+
+/* ---------- 1) launch -> loading -> restart modal ---------- */
+function startLaunch(){
+  go('s-loading');
+  const steps=['Sistem dosyaları hazırlanıyor','Servisler kaydediliyor','WinLaunch yapılandırılıyor','Neredeyse bitti'];
+  let p=0,i=0;
+  const t=setInterval(()=>{
+    p+=Math.random()*18+7; if(p>100)p=100;
+    $('#loadbar').style.width=p+'%';
+    $('#loadtxt').textContent=steps[Math.min(i,steps.length-1)]; i++;
+    if(p>=100){clearInterval(t); setTimeout(askRestart,400);}
+  },420);
+}
+function askRestart(){
+  showModal('Yeniden başlatma','Kurulumu tamamlamak için bilgisayar yeniden başlatılacak. WinLaunch, açılıştan sonra otomatik olarak geri gelecek şekilde ayarlanır (WinLogon/Explorer değişmez). Test etmek istersen yeniden başlatmadan da devam edebilirsin.',[
+    {label:'İptal',ghost:true,fn:()=>{closeModal();}},
+    {label:'Yeniden başlatmadan dene',ghost:true,fn:()=>{closeModal();store.set('phase','onboarding');simulateBoot();}},
+    {label:'Tamam, yeniden başlat',fn:async()=>{
+      closeModal();
+      store.set('phase','booting');            // after reboot, app auto-starts into boot
+      const r=await WL.restart();
+      if(r&&r.simulated){ simulateBoot(); }     // dev / non-windows: show the boot flow
+    }}
+  ]);
+}
+// On real Windows the machine reboots; app set to auto-start re-opens and init() sees phase=booting.
+function simulateBoot(){ go('s-boot'); runBoot(); }
+function runBoot(){
+  let p=0;
+  const t=setInterval(()=>{ p+=Math.random()*14+6; if(p>100)p=100; $('#bootbar').style.width=p+'%';
+    if(p>=100){clearInterval(t); setTimeout(()=>go('s-lang'),500);} },300);
+}
+
+/* ---------- 3) language ---------- */
+const LANGS=[['Türkçe','TR','🇹🇷'],['English','EN','🇬🇧'],['Deutsch','DE','🇩🇪'],['Español','ES','🇪🇸'],['Français','FR','🇫🇷'],['العربية','AR','🇸🇦']];
+function renderLang(){
+  $('#langlist').innerHTML=LANGS.map((l,i)=>`<div class="opt ${i===0?'sel':''}" data-lang="${l[1]}" onclick="selLang(this)"><span class="ic">${l[2]}</span><div class="meta">${l[0]}<small>${l[1]}</small></div></div>`).join('');
+}
+function selLang(el){document.querySelectorAll('#langlist .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');store.set('lang',el.dataset.lang);}
+
+/* ---------- 4) wifi ---------- */
+const WIFIS=[['Jaron_Home_5G',true,'📶'],['TTNET_Fiber_2.4',true,'📶'],['WinLaunch-Guest',false,'📶'],['Komsu_WiFi',true,'🔒'],['AndroidAP_4521',true,'🔒']];
+function renderWifi(){
+  $('#wifilist').innerHTML=WIFIS.map((w,i)=>`<div class="opt" onclick="selWifi(this,'${w[0]}',${w[2]==='🔒'})"><span class="ic">${w[2]}</span><div class="meta">${w[0]}<small>${w[2]==='🔒'?'Güvenli':'Açık'}</small></div><span style="color:var(--muted)">${'▮'.repeat(4-(i%3))}</span></div>`).join('');
+}
+function selWifi(el,name,locked){
+  document.querySelectorAll('#wifilist .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');store.set('wifi',name);
+  if(locked){ showModal('WiFi Şifresi',name+' ağına bağlanmak için şifre gir.',[
+    {label:'İptal',ghost:true,fn:closeModal},
+    {label:'Bağlan',fn:()=>{closeModal();el.querySelector('small').textContent='Bağlı ✓';}}
+  ],true); } else { el.querySelector('small').textContent='Bağlı ✓'; }
+}
+
+/* ---------- 6) profile ---------- */
+function createProfile(){
+  const n=$('#pfname').value.trim(),p=$('#pfpass').value,p2=$('#pfpass2').value;
+  if(n.length<2){return $('#pferr').textContent='Kullanıcı adı en az 2 karakter olmalı.';}
+  if(p.length<4){return $('#pferr').textContent='Şifre en az 4 karakter olmalı.';}
+  if(p!==p2){return $('#pferr').textContent='Şifreler eşleşmiyor.';}
+  const prof={name:n,pass:p,avatar:'👤'};
+  store.set('profile',prof);
+  const ps=store.get('profiles',[]);if(!ps.find(x=>x.name===n))ps.push(prof);store.set('profiles',ps);
+  store.set('phase','ready');
+  go('desktop');
+}
+
+/* ---------- lock / own logon ---------- */
+function lockNow(){ const pr=store.get('profile'); if(!pr)return; $('#lockname').textContent=pr.name; $('#lockav').textContent=pr.avatar||'👤'; $('#lockpass').value=''; $('#lockerr').textContent=''; go('s-lock'); setTimeout(()=>$('#lockpass').focus(),100); }
+function tryUnlock(){ const pr=store.get('profile'); if($('#lockpass').value===pr.pass){ go('desktop'); } else { $('#lockerr').textContent='Hatalı şifre'; } }
+
+/* ============================================================
+   DESKTOP  — dock, launchpad, 60 apps, windows, context menu
+   ============================================================ */
+const APPS=[
+  // id, name, icon, type(optional functional)
+  ['finder','Finder','🗂️','files'],['launchpad','Launchpad','🚀','lp'],['settings','Ayarlar','⚙️','settings'],
+  ['calc','Hesap Makinesi','🧮','calc'],['notes','Notlar','📝','notes'],['terminal','Terminal','🖥️','term'],
+  ['calendar','Takvim','📅','calendar'],['clock','Saat','⏰','clock'],['todo','Yapılacaklar','✅','todo'],
+  ['browser','Tarayıcı','🌐','browser'],['music','Müzik','🎵','music'],['weather','Hava Durumu','⛅','weather'],
+  ['mail','Mail','✉️','mail'],['photos','Fotoğraflar','🖼️','photos'],['camera','Kamera','📷','camera'],
+  ['maps','Haritalar','🗺️','maps'],['messages','Mesajlar','💬','messages'],['facetime','Görüntülü','📹','link'],
+  ['realapps','Uygulamalar','🪟','realapps'],['podcast','Podcast','🎙️','link'],['tv','TV','📺','link'],
+  ['books','Kitaplar','📚','pdfapp'],['news','Haberler','📰','link'],['stocks','Borsa','📈','link'],
+  ['health','Sağlık','❤️','health'],['wallet','Cüzdan','💳','wallet'],
+  ['reminders','Hatırlatıcılar','📌','reminders'],['contacts','Kişiler','👥','contacts'],['voice','Ses Kaydı','🎤','voice'],
+  ['paint','Çizim','🎨','paint'],['code','Kod','⌨️','code'],['files2','Dosya Yöneticisi','📁','files'],
+  ['trash','Çöp Kutusu','🗑️','trash'],['disk','Disk','💾','disk'],['printer','Yazıcı','🖨️','printer'],
+  ['screenshot','Ekran Görüntüsü','📸','shot'],
+  ['calc2','Birim Çevirici','📐','unit'],['translate','Çeviri','🈯','link'],['dictionary','Sözlük','📖','link'],
+  ['timer2','Zamanlayıcı','⏱️','timer'],['stopwatch','Kronometre','⏲️','stopwatch'],['world','Dünya Saati','🌍','wclock'],
+  ['battery','Batarya','🔋','batt'],['performance','Performans','📊','sysmon'],['monitor','Sistem İzleme','🩺','sysmon'],
+  ['theme','Temalar','🎭','settings'],['wallpaperapp','Duvar Kağıdı','🏞️','settings'],['fonts','Yazı Tipleri','🔤','fonts'],
+  ['cloud','Jaski Cloud','☁️','browser'],
+  // --- media + utilities ---
+  ['video','Video Oynatıcı','🎬','video'],['pdf','PDF Görüntüleyici','📕','pdfapp'],['clipboard','Pano Geçmişi','📋','clip'],
+  // --- games ---
+  ['g2048','2048','🔢','g2048'],['snake','Yılan','🐍','snake'],['mines','Mayın Tarlası','💣','mines'],['tetris','Tetris','🧱','tetris']
+];
+// -> 60 apps
+const DOCKSET=['finder','realapps','launchpad','browser','notes','calc','terminal','music','settings','trash'];
+
+function mountDesktop(){
+  const pr=store.get('profile')||{name:'Kullanıcı'};
+  $('#mbuser').textContent=pr.name;
+  renderDock();renderDeskIcons();renderLaunchpad('');
+  renderWidgets();
+  applyTheme();
+  dockMagnify();
+  playStartupSound();
+  ensureRealApps();  // pre-scan installed apps so Spotlight can launch them
+  if(store.get('kioskPref')){ enableKiosk(true); }  // restore kiosk lock if it was on
+}
+
+/* ============================================================
+   KIOSK LOCK — çıkış yalnızca Ctrl+Shift+Alt+Esc
+   ============================================================ */
+function askKiosk(){
+  showModal('Kiosk kilidi','WinLaunch tam ekran kilitlenecek. Kapatma, küçültme ve Alt+F4 çalışmayacak. Çıkmak için:  Ctrl + Shift + Alt + Esc.\n\nGüvenlik ağı: Windows\'un Ctrl+Alt+Del ekranı her zaman çalışır. Kilitlensin mi?',[
+    {label:'Vazgeç',ghost:true,fn:closeModal},
+    {label:'Kilitle 🔒',fn:()=>{closeModal();enableKiosk(true);}}
+  ]);
+}
+async function enableKiosk(on){
+  store.set('kioskPref',on);
+  await WL.kioskSet(on);
+  showKioskBadge(on);
+  if(on)toast('🔒 Kiosk kilidi AÇIK · çıkış: Ctrl+Shift+Alt+Esc');
+  else toast('Kiosk kilidi kapatıldı');
+}
+function showKioskBadge(on){
+  let b=$('#kioskbadge');
+  if(on){ if(!b){b=document.createElement('div');b.id='kioskbadge';b.style.cssText='position:fixed;bottom:12px;right:12px;z-index:950;background:rgba(0,0,0,.62);backdrop-filter:blur(12px);border:1px solid var(--glass-brd);padding:8px 14px;border-radius:12px;font-size:12px;color:#fff;pointer-events:none';document.body.appendChild(b);} b.textContent='🔒 Kilitli · Çıkış: Ctrl + Shift + Alt + Esc'; }
+  else if(b){b.remove();}
+}
+
+/* ============================================================
+   NEW FEATURE 1 — Spotlight (⌘/Ctrl + Space)
+   ============================================================ */
+let spotSel=0, spotItems=[];
+function openSpotlight(){const s=$('#spotlight');s.style.display='flex';$('#spotin').value='';spotSearch('');setTimeout(()=>$('#spotin').focus(),50);}
+function closeSpotlight(){$('#spotlight').style.display='none';}
+function spotSearch(q){
+  q=(q||'').trim();const res=$('#spotres');spotSel=0;spotItems=[];
+  // math eval
+  if(/^[-+*/().\d\s]+$/.test(q)&&/\d/.test(q)){try{const v=eval(q);if(v!==undefined)spotItems.push({ic:'🟰',t:String(v),s:'Hesaplama sonucu',fn:()=>{}});}catch(e){}}
+  const ql=q.toLowerCase();
+  APPS.filter(a=>!q||a[1].toLowerCase().includes(ql)).slice(0,6).forEach(a=>spotItems.push({ic:a[2],t:a[1],s:'WinLaunch uygulaması',fn:()=>openApp(a[0])}));
+  if(q&&_realAppsCache&&_realAppsCache.length){_realAppsCache.filter(a=>a.name.toLowerCase().includes(ql)).slice(0,6).forEach(a=>spotItems.push({ic:'📦',t:a.name,s:'Kurulu uygulama · çalıştır',fn:()=>winlaunch.appsLaunch(a.path)}));}
+  const cmds=[['Oturumu Kilitle','🔒',lockNow],['Ayarları Aç','⚙️',()=>openApp('settings')],['Tam Ekran','🖥️',()=>WL.full()],['Launchpad','🚀',toggleLaunchpad]];
+  cmds.filter(c=>!q||c[0].toLowerCase().includes(ql)).forEach(c=>spotItems.push({ic:c[1],t:c[0],s:'Komut',fn:c[2]}));
+  res.innerHTML=spotItems.map((it,i)=>`<div class="spotrow ${i===0?'sel':''}" onclick="spotRun(${i})"><span class="ic">${it.ic}</span><div><div>${it.t}</div><small>${it.s}</small></div></div>`).join('')||'<div class="spotrow">Sonuç yok</div>';
+}
+function spotRun(i){const it=spotItems[i];if(it){it.fn();closeSpotlight();}}
+function spotKey(e){
+  if(e.key==='ArrowDown'){e.preventDefault();spotSel=Math.min(spotSel+1,spotItems.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();spotSel=Math.max(spotSel-1,0);}
+  else if(e.key==='Enter'){spotRun(spotSel);return;}
+  else if(e.key==='Escape'){closeSpotlight();return;}
+  else return;
+  document.querySelectorAll('#spotres .spotrow').forEach((r,i)=>r.classList.toggle('sel',i===spotSel));
+}
+
+/* ============================================================
+   NEW FEATURE 2 — Notification Center (menü çubuğu saati)
+   ============================================================ */
+let notifData=[
+  {ic:'⚡',t:'WinLaunch',b:'Kuruluma hoş geldin! Sağ tık menüsünü denemeyi unutma.',w:'şimdi'},
+  {ic:'📶',t:'WiFi',b:'Ağa başarıyla bağlanıldı.',w:'2 dk'},
+  {ic:'☁️',t:'Jaski Cloud',b:'Profilin buluta yedeklendi (demo).',w:'5 dk'},
+  {ic:'🔋',t:'Batarya',b:'Batarya %86. İyi durumda.',w:'10 dk'}
+];
+function renderNotif(){
+  const n=new Date();
+  const d=n.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});
+  $('#notif').innerHTML=`<h2>${n.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</h2><div class="nd">${d}</div>
+    <div class="nwidget"><div style="font-size:30px">⛅ 18°</div><div style="color:var(--muted);font-size:12px">İstanbul · Parçalı Bulutlu</div></div>
+    <div class="nwidget" style="text-align:left"><b style="font-size:13px">📅 Bugün</b><div style="color:var(--muted);font-size:12px;margin-top:6px">Planlanmış etkinlik yok</div></div>
+    <div style="font-size:12px;color:var(--muted);margin:14px 0 8px">BİLDİRİMLER</div>
+    ${notifData.map(x=>`<div class="ncard"><div class="nt">${x.ic} ${x.t}<small>${x.w}</small></div><div class="nb">${x.b}</div></div>`).join('')}
+    <button class="btn ghost wide" style="margin-top:6px" onclick="notifData=[];renderNotif()">Tümünü Temizle</button>`;
+}
+function toggleNotif(){const n=$('#notif');if(!n.classList.contains('open'))renderNotif();n.classList.toggle('open');}
+
+/* ============================================================
+   NEW FEATURE 3 — Desktop Widgets (sürüklenebilir)
+   ============================================================ */
+function renderWidgets(){
+  const on=store.get('widgets',{clock:true,weather:true,note:true});
+  // remove old
+  document.querySelectorAll('.dwidget').forEach(e=>e.remove());
+  const pos=store.get('wpos',{clock:{x:24,y:90},weather:{x:24,y:230},note:{x:24,y:370}});
+  if(on.clock)addWidget('clock',pos.clock,`<span class="wx" onclick="hideWidget('clock')">✕</span><div class="wclock" id="wgclock">--:--</div><div class="wlabel" id="wgdate"></div>`);
+  if(on.weather)addWidget('weather',pos.weather,`<span class="wx" onclick="hideWidget('weather')">✕</span><div style="text-align:center"><div style="font-size:34px">⛅</div><div style="font-size:24px">18°</div><div class="wlabel">İstanbul</div></div>`);
+  if(on.note)addWidget('note',pos.note,`<span class="wx" onclick="hideWidget('note')">✕</span><div class="wlabel" style="text-align:left;margin-bottom:6px">📝 Hızlı Not</div><textarea id="wgnote" placeholder="Yaz…"></textarea>`);
+  const wn=$('#wgnote');if(wn){wn.value=store.get('wnote','');wn.addEventListener('input',()=>store.set('wnote',wn.value));}
+  tickWidgetClock();
+}
+function addWidget(id,p,html){
+  const el=document.createElement('div');el.className='dwidget';el.dataset.wid=id;
+  el.style.left=(p.x||24)+'px';el.style.top=(p.y||90)+'px';el.innerHTML=html;
+  $('#desktop').appendChild(el);
+  // drag
+  let sx,sy,ox,oy,drag=false;
+  el.addEventListener('mousedown',e=>{if(e.target.tagName==='TEXTAREA'||e.target.classList.contains('wx'))return;drag=true;sx=e.clientX;sy=e.clientY;ox=el.offsetLeft;oy=el.offsetTop;});
+  window.addEventListener('mousemove',e=>{if(!drag)return;el.style.left=(ox+e.clientX-sx)+'px';el.style.top=Math.max(64,oy+e.clientY-sy)+'px';});
+  window.addEventListener('mouseup',()=>{if(!drag)return;drag=false;const pos=store.get('wpos',{});pos[id]={x:el.offsetLeft,y:el.offsetTop};store.set('wpos',pos);});
+}
+function hideWidget(id){const on=store.get('widgets',{clock:true,weather:true,note:true});on[id]=false;store.set('widgets',on);renderWidgets();}
+function showWidget(id){const on=store.get('widgets',{clock:true,weather:true,note:true});on[id]=true;store.set('widgets',on);renderWidgets();toast(id+' widget'+String.fromCharCode(39)+'ı açıldı');}
+function showAllWidgets(){store.set('widgets',{clock:true,weather:true,note:true});renderWidgets();toast('Tüm widgetlar açıldı');}
+function tickWidgetClock(){const c=$('#wgclock'),d=$('#wgdate');if(c){const n=new Date();c.textContent=n.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});if(d)d.textContent=n.toLocaleDateString('tr-TR',{weekday:'short',day:'numeric',month:'short'});}}
+setInterval(tickWidgetClock,1000);
+function renderDock(){
+  const d=$('#dock');
+  d.innerHTML=DOCKSET.map((id,i)=>{
+    const a=APPS.find(x=>x[0]===id)||[id,id,'❓'];
+    const sep=(id==='trash')?'<div class="dock-sep"></div>':'';
+    return sep+`<div class="dockapp" onclick="dockClick('${id}')"><span>${a[2]}</span><span class="tip">${a[1]}</span></div>`;
+  }).join('');
+}
+function dockClick(id){ if(id==='launchpad'){toggleLaunchpad();return;} openApp(id); }
+function renderDeskIcons(){
+  const ids=['finder','notes','trash'];
+  $('#deskicons').innerHTML=ids.map(id=>{const a=APPS.find(x=>x[0]===id);return `<div class="deskicon" ondblclick="openApp('${id}')" onclick="selectIcon(this)"><div class="ic">${a[2]}</div><span>${a[1]}</span></div>`;}).join('');
+}
+function selectIcon(el){document.querySelectorAll('.deskicon .ic').forEach(i=>i.style.background='var(--glass)');el.querySelector('.ic').style.background='rgba(79,140,255,.25)';}
+
+/* launchpad */
+function toggleLaunchpad(){const l=$('#launchpad');l.style.display=l.style.display==='flex'?'none':'flex';if(l.style.display==='flex'){$('#lpsearch').value='';renderLaunchpad('');$('#lpsearch').focus();}}
+function renderLaunchpad(q){
+  q=(q||'').toLowerCase();
+  $('#lpgrid').innerHTML=APPS.filter(a=>a[1].toLowerCase().includes(q)).map(a=>`<div class="lpapp" onclick="openApp('${a[0]}');toggleLaunchpad()"><div class="ic">${a[2]}</div><span>${a[1]}</span></div>`).join('');
+}
+
+/* ---------- window manager ---------- */
+let zTop=360, openWins={};
+function openApp(id){
+  const a=APPS.find(x=>x[0]===id)||[id,id,'❓'];
+  if(id==='launchpad')return toggleLaunchpad();
+  const locked=store.get('lockedApps',[]);
+  if(locked.includes(id)&&!_unlocked[id]){ promptAppUnlock(id); return; }
+  if(a[3]==='link'){const l=LINKS[id];if(l){WL.openUrl(l[0]);toast(l[1]+' açılıyor…');}else toast('Bağlantı tanımlı değil');return;}
+  if(GAMES.includes(id))activeGame=id;
+  if(openWins[id]){focusWin(openWins[id]);return;}
+  const w=document.createElement('div');w.className='appwin';
+  w.style.left=(120+Object.keys(openWins).length*26)+'px';
+  w.style.top=(110+Object.keys(openWins).length*22)+'px';
+  w.style.zIndex=++zTop;
+  w.innerHTML=`<div class="wbar"><span class="wdot" style="background:#ff5f57" onclick="closeWin('${id}')"></span><span class="wdot" style="background:#febc2e"></span><span class="wdot" style="background:#28c840" onclick="this.closest('.appwin').style.width='820px';this.closest('.appwin').style.height='560px'"></span><span class="wt">${a[1]}</span></div><div class="wbody ${['browser','term'].includes(a[3])?'pad0':''}">${appBody(a)}</div>`;
+  $('#winroot').appendChild(w);openWins[id]=w;
+  w.addEventListener('mousedown',()=>{w.style.zIndex=++zTop;if(GAMES.includes(id))activeGame=id;});
+  dragify(w);
+  initApp(a,w);
+}
+function closeWin(id){if(openWins[id]){const w=openWins[id];if(w._stream){try{w._stream.getTracks().forEach(t=>t.stop());}catch(e){}}w.querySelectorAll('video,audio').forEach(v=>{if(v.srcObject){try{v.srcObject.getTracks().forEach(t=>t.stop());}catch(e){}}});w.remove();delete openWins[id];if(activeGame===id)activeGame=null;}}
+function focusWin(w){w.style.zIndex=++zTop;}
+function dragify(w){const bar=w.querySelector('.wbar');let sx,sy,ox,oy,drag=false,zone=null;
+  const hint=$('#snaphint');const TOP=64;
+  const setHint=z=>{zone=z;if(!z){hint.style.display='none';return;}hint.style.display='block';const vw=innerWidth,vh=innerHeight-TOP;
+    if(z==='L'){hint.style.left='0';hint.style.width=(vw/2-6)+'px';hint.style.height=vh+'px';}
+    else if(z==='R'){hint.style.left=(vw/2+3)+'px';hint.style.width=(vw/2-6)+'px';hint.style.height=vh+'px';}
+    else if(z==='M'){hint.style.left='0';hint.style.width=vw+'px';hint.style.height=vh+'px';}};
+  const apply=z=>{w.style.transition='.12s';const vw=innerWidth,vh=innerHeight-TOP;
+    if(z==='L'){w.style.left='0';w.style.top=TOP+'px';w.style.width=(vw/2-6)+'px';w.style.height=vh+'px';}
+    else if(z==='R'){w.style.left=(vw/2+3)+'px';w.style.top=TOP+'px';w.style.width=(vw/2-6)+'px';w.style.height=vh+'px';}
+    else if(z==='M'){w.style.left='0';w.style.top=TOP+'px';w.style.width=vw+'px';w.style.height=vh+'px';}
+    setTimeout(()=>w.style.transition='',140);};
+  bar.addEventListener('mousedown',e=>{drag=true;sx=e.clientX;sy=e.clientY;ox=w.offsetLeft;oy=w.offsetTop;e.preventDefault();});
+  // double-click titlebar = maximize toggle
+  bar.addEventListener('dblclick',()=>apply('M'));
+  window.addEventListener('mousemove',e=>{if(!drag)return;w.style.left=(ox+e.clientX-sx)+'px';w.style.top=Math.max(TOP,oy+e.clientY-sy)+'px';
+    if(e.clientX<=22)setHint('L');else if(e.clientX>=innerWidth-22)setHint('R');else if(e.clientY<=TOP+8)setHint('M');else setHint(null);});
+  window.addEventListener('mouseup',()=>{if(!drag)return;drag=false;if(zone){apply(zone);}hint.style.display='none';zone=null;});
+}
+
+/* ---------- app bodies ---------- */
+function appBody(a){
+  switch(a[3]){
+    case 'calc':return `<div class="calc"><div class="scr" id="cscr">0</div><div class="grid" id="cgrid"></div></div>`;
+    case 'notes':return `<textarea class="note" id="noteArea" placeholder="Notunu yaz…"></textarea>`;
+    case 'term':return `<div class="term" id="term"><div>WinLaunch Terminal — 'help' yaz</div><div id="termout"></div><div>$ <input class="in" id="termin" autofocus></div></div>`;
+    case 'settings':return settingsBody();
+    case 'calendar':return `<div id="calbody"></div>`;
+    case 'clock':return `<div class="clockbig" id="clockbig">--:--:--</div><div class="clocksub" id="clocksub"></div>`;
+    case 'todo':return `<div class="row" style="margin:0 0 12px"><input class="input" id="todoin" placeholder="Görev ekle…" style="margin:0" onkeydown="if(event.key==='Enter')addTodo()"><button class="btn" onclick="addTodo()">+</button></div><div id="todolist"></div>`;
+    case 'browser':return `<div style="background:#1a1f2b;padding:8px 10px;display:flex;gap:8px"><input class="input" style="margin:0;padding:8px 12px" id="urlbar" value="https://jaski.cloud" onkeydown="if(event.key==='Enter')browse(this.value)"></div><iframe id="frame" style="width:100%;height:calc(100% - 50px);border:none;background:#fff" srcdoc="<body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:90vh;color:#334;flex-direction:column'><h1>☁️ Jaski Cloud</h1><p>Hoş geldin! (demo tarayıcı)</p></body>"></iframe>`;
+    case 'music':return musicBody();
+    case 'weather':return weatherBody();
+    case 'files':return filesBody();
+    case 'realapps':return `<div style="display:flex;flex-direction:column;height:100%"><input class="input" id="appsearch" placeholder="Kurulu uygulama ara…" style="margin:0 0 12px" oninput="filterRealApps(this.value)"><div class="scroll" id="appsgrid" style="flex:1;display:grid;grid-template-columns:repeat(auto-fill,96px);gap:16px;align-content:start"></div></div>`;
+    case 'photos':return `<div style="display:flex;flex-direction:column;height:100%"><div class="row" style="margin:0 0 10px"><button class="btn" onclick="pickMedia('image/*',this)">🖼️ Resim Aç</button></div><div id="imgview" style="flex:1;display:flex;align-items:center;justify-content:center;background:#000;border-radius:10px;overflow:hidden"><span style="color:var(--muted)">Bir resim seç…</span></div></div>`;
+    case 'video':return `<div style="display:flex;flex-direction:column;height:100%"><div class="row" style="margin:0 0 10px"><button class="btn" onclick="pickMedia('video/*',this)">🎬 Video Aç</button></div><div id="vidview" style="flex:1;display:flex;align-items:center;justify-content:center;background:#000;border-radius:10px;overflow:hidden"><span style="color:var(--muted)">Bir video seç…</span></div></div>`;
+    case 'pdfapp':return `<div style="display:flex;flex-direction:column;height:100%"><div class="row" style="margin:0 0 10px"><button class="btn" onclick="pickMedia('application/pdf',this)">📕 PDF Aç</button></div><div id="pdfview" style="flex:1;background:#fff;border-radius:10px;overflow:hidden"><div style="color:#555;padding:20px">Bir PDF seç…</div></div></div>`;
+    case 'sysmon':return sysmonBody();
+    case 'shot':return `<div style="text-align:center"><p style="color:var(--muted);margin-bottom:14px">Tüm ekranın görüntüsünü al, Resimler/WinLaunch klasörüne kaydet.</p><button class="btn" onclick="takeShot(this)">📸 Ekran Görüntüsü Al</button><div id="shotout" style="margin-top:16px"></div></div>`;
+    case 'clip':return `<div style="display:flex;flex-direction:column;height:100%"><div class="row" style="margin:0 0 10px;justify-content:space-between;align-items:center"><b>📋 Pano Geçmişi</b><button class="btn ghost" onclick="WL.clipClear().then(()=>loadClip(openWins['clipboard']))">Temizle</button></div><div class="scroll" id="cliplist" style="flex:1"></div></div>`;
+    case 'g2048':return `<div style="text-align:center"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>2048</b><span>Skor: <b id="s2048">0</b></span></div><div id="b2048" style="display:inline-block;background:#1a1f2b;padding:8px;border-radius:10px"></div><p style="color:var(--muted);font-size:12px;margin-top:10px">Ok tuşlarıyla oyna · <button class="btn ghost" onclick="new2048()">Yeni Oyun</button></p></div>`;
+    case 'snake':return `<div style="text-align:center"><div style="margin-bottom:8px">Skor: <b id="ssnake">0</b></div><canvas id="csnake" width="300" height="300" style="background:#0a0d14;border-radius:10px"></canvas><p style="color:var(--muted);font-size:12px;margin-top:8px">Ok tuşları · <button class="btn ghost" onclick="newSnake()">Başlat</button></p></div>`;
+    case 'mines':return `<div style="text-align:center"><div style="margin-bottom:8px" id="minestat">💣 Mayın Tarlası · sağ tık = bayrak</div><div id="bmines" style="display:inline-block"></div><br><button class="btn ghost" onclick="newMines()" style="margin-top:10px">Yeni Oyun</button></div>`;
+    case 'tetris':return `<div style="text-align:center"><div style="margin-bottom:8px">Skor: <b id="stetris">0</b></div><canvas id="ctetris" width="200" height="400" style="background:#0a0d14;border-radius:8px"></canvas><p style="color:var(--muted);font-size:12px;margin-top:8px">← → ↓ · ↑ döndür · <button class="btn ghost" onclick="newTetris()">Başlat</button></p></div>`;
+    case 'mail':return `<div style="display:flex;flex-direction:column;height:100%"><h3 style="margin-bottom:10px">✉️ Mail</h3><input class="input" id="mto" placeholder="Kime (e-posta)" style="-webkit-user-select:text;user-select:text"><input class="input" id="msub" placeholder="Konu" style="-webkit-user-select:text;user-select:text"><textarea class="input" id="mbody" placeholder="Mesaj…" style="flex:1;resize:none;-webkit-user-select:text;user-select:text"></textarea><button class="btn" onclick="sendMail(this)">Gönder</button></div>`;
+    case 'camera':return `<div style="display:flex;flex-direction:column;height:100%;text-align:center"><video id="camv" autoplay playsinline style="flex:1;background:#000;border-radius:10px;object-fit:cover"></video><div class="row" style="margin:10px 0 0;justify-content:center"><button class="btn" onclick="camShot(this)">📸 Çek</button></div><div id="camout"></div></div>`;
+    case 'maps':return `<iframe style="width:100%;height:100%;border:none;border-radius:10px" src="https://www.openstreetmap.org/export/embed.html?bbox=28.8,40.9,29.2,41.1&layer=mapnik"></iframe>`;
+    case 'messages':return `<div style="display:flex;flex-direction:column;height:100%"><div class="scroll" id="msgfeed" style="flex:1;margin-bottom:10px"></div><div class="row" style="margin:0"><input class="input" id="msgin" placeholder="Not/mesaj yaz…" style="margin:0;-webkit-user-select:text;user-select:text" onkeydown="if(event.key==='Enter')addMsg()"><button class="btn" onclick="addMsg()">➤</button></div></div>`;
+    case 'health':return healthBody();
+    case 'wallet':return walletBody();
+    case 'reminders':return remindersBody();
+    case 'contacts':return contactsBody();
+    case 'voice':return `<div style="text-align:center"><div id="voicestat" style="font-size:52px;margin:18px">🎤</div><button class="btn" id="vrec" onclick="voiceToggle(this)">Kaydet</button><div id="voicelist" style="margin-top:16px"></div></div>`;
+    case 'paint':return `<div style="display:flex;flex-direction:column;height:100%"><div class="row" style="margin:0 0 8px;align-items:center"><input type="color" id="pcolor" value="#4f8cff" style="width:40px;height:34px;border:none;background:none"><input type="range" id="psize" min="1" max="30" value="4"><button class="btn ghost" onclick="paintClear(this)">Temizle</button><button class="btn ghost" onclick="paintSave(this)">Kaydet</button></div><canvas id="pcanvas" width="560" height="320" style="background:#fff;border-radius:10px;cursor:crosshair;flex:1"></canvas></div>`;
+    case 'code':return `<div style="display:flex;flex-direction:column;height:100%"><div style="color:var(--muted);font-size:12px;margin-bottom:8px">Kod Editörü · otomatik kaydeder</div><textarea id="codearea" spellcheck="false" placeholder="// kodunu yaz…" style="flex:1;background:#0a0d14;color:#8fe39a;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;border:none;border-radius:8px;padding:12px;resize:none;-webkit-user-select:text;user-select:text"></textarea></div>`;
+    case 'trash':return `<div style="text-align:center;padding:30px"><div style="font-size:64px">🗑️</div><h3 style="margin:10px 0">Çöp Kutusu</h3><p style="color:var(--muted)">Çöp kutusu boş.</p></div>`;
+    case 'disk':return `<div style="text-align:center;padding:14px"><div style="font-size:52px">💾</div><h3 style="margin:8px 0">Depolama</h3><div id="diskinfo" style="color:var(--muted)">Hesaplanıyor…</div></div>`;
+    case 'printer':return `<div style="text-align:center;padding:20px"><div style="font-size:56px">🖨️</div><h3 style="margin:10px 0">Yazıcı</h3><p style="color:var(--muted);margin-bottom:16px">Bu sayfayı yazdır / PDF'e kaydet.</p><button class="btn" onclick="window.print()">Yazdır</button></div>`;
+    case 'unit':return unitBody();
+    case 'timer':return `<div style="text-align:center"><div id="tmrdisp" style="font-size:48px;font-variant-numeric:tabular-nums;margin:14px">00:00</div><div class="row" style="justify-content:center;margin-bottom:10px"><button class="btn ghost" onclick="tmrAdd(60)">+1dk</button><button class="btn ghost" onclick="tmrAdd(300)">+5dk</button><button class="btn ghost" onclick="tmrAdd(-60)">-1dk</button></div><div class="row" style="justify-content:center"><button class="btn" onclick="tmrStart()">Başlat</button><button class="btn ghost" onclick="tmrReset()">Sıfırla</button></div></div>`;
+    case 'stopwatch':return `<div style="text-align:center"><div id="swdisp" style="font-size:48px;font-variant-numeric:tabular-nums;margin:14px">00:00.0</div><div class="row" style="justify-content:center"><button class="btn" id="swbtn" onclick="swToggle(this)">Başlat</button><button class="btn ghost" onclick="swReset()">Sıfırla</button></div></div>`;
+    case 'wclock':return `<div id="wclockbody"></div>`;
+    case 'batt':return `<div style="text-align:center;padding:16px"><div id="battbig" style="font-size:64px">🔋</div><div id="battpct" style="font-size:32px;margin:8px">—</div><div id="battinfo" style="color:var(--muted)"></div></div>`;
+    case 'fonts':return fontsBody();
+    case 'hw':return hwBody(a);
+    default:return `<div style="text-align:center;padding:40px 10px;color:var(--muted)"><div style="font-size:64px;margin-bottom:16px">${a[2]}</div><h3 style="color:var(--text);margin-bottom:8px">${a[1]}</h3><p>Bu özellik WinLaunch 1.0'da hazır. Genişletmek için Ayarlar → Uygulamalar.</p></div>`;
+  }
+}
+function initApp(a,w){
+  if(a[3]==='calc')initCalc(w);
+  if(a[3]==='notes'){const t=w.querySelector('#noteArea');t.value=store.get('note','');t.addEventListener('input',()=>store.set('note',t.value));}
+  if(a[3]==='term')initTerm(w);
+  if(a[3]==='calendar')renderCal(w);
+  if(a[3]==='clock')initClock(w);
+  if(a[3]==='todo')renderTodo(w);
+  if(a[3]==='files'){feInit(w);}
+  if(a[3]==='realapps'){loadRealApps(w);}
+  if(a[3]==='sysmon')startSysmon(w);
+  if(a[3]==='clip')loadClip(w);
+  if(a[3]==='g2048')new2048();
+  if(a[3]==='mines')newMines();
+  if(a[3]==='camera')startCam(w);
+  if(a[3]==='paint')initPaint(w);
+  if(a[3]==='code')initCode(w);
+  if(a[3]==='disk')initDisk(w);
+  if(a[3]==='unit')unitFill();
+  if(a[3]==='wclock')initWClock(w);
+  if(a[3]==='batt')initBatt(w);
+  if(a[3]==='messages')renderMsg(w);
+  if(a[3]==='timer')tmrDisp();
+  if(a[3]==='stopwatch')swDisp();
+}
+
+/* calculator */
+function initCalc(w){
+  const keys=['C','±','%','÷','7','8','9','×','4','5','6','-','1','2','3','+','0','.','='];
+  const g=w.querySelector('#cgrid');const scr=w.querySelector('#cscr');let cur='0';
+  g.innerHTML=keys.map(k=>`<button class="${'÷×-+='.includes(k)?'op':''}" style="${k==='0'?'grid-column:span 2':''}">${k}</button>`).join('');
+  const upd=()=>scr.textContent=cur;
+  g.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const k=b.textContent;
+    if(k==='C'){cur='0';}
+    else if(k==='='){try{cur=String(eval(cur.replace(/×/g,'*').replace(/÷/g,'/'))||0);}catch(e){cur='Hata';}}
+    else if(k==='±'){cur=cur.startsWith('-')?cur.slice(1):'-'+cur;}
+    else if(k==='%'){cur=String(parseFloat(cur)/100);}
+    else{if(cur==='0'&&!'.'.includes(k))cur=k;else cur+=k;}
+    upd();
+  });upd();
+}
+/* terminal */
+function initTerm(w){
+  const inp=w.querySelector('#termin'),out=w.querySelector('#termout');
+  inp.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const c=inp.value.trim();inp.value='';
+    let r='';const pr=store.get('profile')||{name:'user'};
+    if(c==='help')r='Komutlar: help, whoami, date, echo, ver, clear, apps';
+    else if(c==='whoami')r=pr.name;
+    else if(c==='date')r=new Date().toString();
+    else if(c==='ver')r='WinLaunch 1.0.0';
+    else if(c==='apps')r=APPS.length+' uygulama yüklü';
+    else if(c.startsWith('echo '))r=c.slice(5);
+    else if(c==='clear'){out.innerHTML='';return;}
+    else if(c==='')r='';
+    else r=c+': komut bulunamadı';
+    out.innerHTML+=`<div>$ ${c}</div>${r?`<div>${r}</div>`:''}`;
+    w.querySelector('#term').scrollTop=9e9;
+  });
+  w.querySelector('.wbody').addEventListener('click',()=>inp.focus());
+}
+/* calendar */
+function renderCal(w){
+  const d=new Date(),y=d.getFullYear(),m=d.getMonth(),today=d.getDate();
+  const first=new Date(y,m,1).getDay()||7,days=new Date(y,m+1,0).getDate();
+  const names=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+  let html=`<h3 style="text-align:center;margin-bottom:12px">${names[m]} ${y}</h3><table class="cal"><tr>${['Pt','Sa','Ça','Pe','Cu','Ct','Pz'].map(x=>`<th>${x}</th>`).join('')}</tr><tr>`;
+  for(let i=1;i<first;i++)html+='<td></td>';
+  for(let dd=1;dd<=days;dd++){if((first-1+dd-1)%7===0&&dd>1)html+='</tr><tr>';html+=`<td class="${dd===today?'today':''}">${dd}</td>`;}
+  html+='</tr></table>';w.querySelector('#calbody').innerHTML=html;
+}
+/* clock */
+function initClock(w){const b=w.querySelector('#clockbig'),s=w.querySelector('#clocksub');
+  const t=setInterval(()=>{if(!document.body.contains(w)){clearInterval(t);return;}const n=new Date();b.textContent=n.toLocaleTimeString('tr-TR');s.textContent=n.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});},1000);
+}
+/* todo */
+function addTodo(){const w=openWins['todo'];if(!w)return;const i=w.querySelector('#todoin');const v=i.value.trim();if(!v)return;const list=store.get('todos',[]);list.push({t:v,done:false});store.set('todos',list);i.value='';renderTodo(w);}
+function renderTodo(w){const list=store.get('todos',[]);w.querySelector('#todolist').innerHTML=list.map((x,i)=>`<div class="todo-item ${x.done?'done':''}"><input type="checkbox" ${x.done?'checked':''} onchange="toggleTodo(${i})"><span style="flex:1">${x.t}</span><span onclick="delTodo(${i})" style="cursor:pointer;color:var(--muted)">✕</span></div>`).join('')||'<p style="color:var(--muted)">Henüz görev yok.</p>';}
+function toggleTodo(i){const l=store.get('todos',[]);l[i].done=!l[i].done;store.set('todos',l);renderTodo(openWins['todo']);}
+function delTodo(i){const l=store.get('todos',[]);l.splice(i,1);store.set('todos',l);renderTodo(openWins['todo']);}
+/* browser */
+function browse(u){const f=openWins['browser'].querySelector('#frame');f.srcdoc=`<body style='font-family:sans-serif;padding:30px;color:#334'><h2>${u}</h2><p>Demo tarayıcı — gerçek ağ isteği yapılmaz.</p></body>`;}
+/* music — real player */
+function musicBody(){return `<div style="text-align:center;display:flex;flex-direction:column;height:100%"><div style="width:120px;height:120px;border-radius:16px;margin:4px auto 10px;background:linear-gradient(135deg,var(--accent),#7d5cff);display:flex;align-items:center;justify-content:center;font-size:52px">🎵</div><div id="mtitle" style="font-weight:600">Müzik seçilmedi</div><audio id="maudio" style="width:100%;margin-top:14px" controls></audio><button class="btn" style="margin-top:14px" onclick="pickAudio(this)">🎵 Müzik Dosyası Aç</button></div>`;}
+function pickAudio(btn){const win=btn.closest('.appwin');const inp=document.createElement('input');inp.type='file';inp.accept='audio/*';inp.onchange=()=>{const f=inp.files[0];if(!f)return;const a=win.querySelector('#maudio');a.src=URL.createObjectURL(f);win.querySelector('#mtitle').textContent=f.name;a.play();};inp.click();}
+
+/* ===== Media pickers (image/video/pdf) ===== */
+function pickMedia(accept,btn){const win=btn.closest('.appwin');const inp=document.createElement('input');inp.type='file';inp.accept=accept;inp.onchange=()=>{const f=inp.files[0];if(!f)return;const url=URL.createObjectURL(f);
+  if(accept.indexOf('image')===0)win.querySelector('#imgview').innerHTML='<img src="'+url+'" style="max-width:100%;max-height:100%;object-fit:contain">';
+  else if(accept.indexOf('video')===0)win.querySelector('#vidview').innerHTML='<video src="'+url+'" controls autoplay style="max-width:100%;max-height:100%"></video>';
+  else if(accept.indexOf('pdf')>=0)win.querySelector('#pdfview').innerHTML='<iframe src="'+url+'" style="width:100%;height:100%;border:none"></iframe>';};inp.click();}
+/* open a media file from Finder (by real path, via wlmedia://) */
+function openMedia(kind,p,name){
+  const w=document.createElement('div');w.className='appwin';w.style.left='140px';w.style.top='110px';w.style.width='720px';w.style.height='520px';w.style.zIndex=++zTop;
+  const src=mediaURL(p);let inner='';
+  if(kind==='image')inner='<img src="'+src+'" style="max-width:100%;max-height:100%;object-fit:contain">';
+  else if(kind==='video')inner='<video src="'+src+'" controls autoplay style="max-width:100%;max-height:100%"></video>';
+  else if(kind==='audio')inner='<div style="text-align:center;color:var(--text)"><div style="font-size:60px">🎵</div><div style="margin:10px 0">'+name+'</div><audio src="'+src+'" controls autoplay></audio></div>';
+  else inner='<iframe src="'+src+'" style="width:100%;height:100%;border:none;background:#fff"></iframe>';
+  w.innerHTML='<div class="wbar"><span class="wdot" style="background:#ff5f57" onclick="this.closest(\'.appwin\').remove()"></span><span class="wdot" style="background:#febc2e"></span><span class="wdot" style="background:#28c840"></span><span class="wt">'+name+'</span><span style="flex:1"></span><span class="wt" style="cursor:pointer" onclick="winlaunch&&winlaunch.fsOpen(\''+esc(p)+'\')">Sistemde aç ⧉</span></div><div class="wbody" style="display:flex;align-items:center;justify-content:center;background:'+(kind==='pdf'?'#fff':'#000')+'">'+inner+'</div>';
+  $('#winroot').appendChild(w);dragify(w);
+}
+
+/* ===== System Monitor ===== */
+function sysmonBody(){return `<div><div style="color:var(--muted);font-size:12px" id="syshost"></div>
+  <div style="margin:16px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>İşlemci (CPU)</span><b id="syscpu">—</b></div><div class="bar" style="margin:6px 0 0"><i id="syscpubar"></i></div><div id="syscpuname" style="font-size:11px;color:var(--muted);margin-top:4px"></div></div>
+  <div style="margin:16px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>Bellek (RAM)</span><b id="sysmem">—</b></div><div class="bar" style="margin:6px 0 0"><i id="sysmembar"></i></div></div>
+  <div style="margin:16px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>Batarya</span><b id="sysbat">—</b></div><div class="bar" style="margin:6px 0 0"><i id="sysbatbar"></i></div></div>
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:16px"><span id="sysup"></span><span id="syscores"></span></div></div>`;}
+function fmtGB(b){return (b/1073741824).toFixed(1)+' GB';}
+async function startSysmon(w){
+  async function tick(){
+    if(!document.body.contains(w))return;
+    const s=await WL.sysStats();
+    if(s){
+      w.querySelector('#syshost').textContent=s.host+' · '+s.platform+' · '+s.arch;
+      w.querySelector('#syscpu').textContent=s.cpu+'%';w.querySelector('#syscpubar').style.width=s.cpu+'%';
+      w.querySelector('#syscpuname').textContent=s.cpuName;
+      w.querySelector('#sysmem').textContent=fmtGB(s.memUsed)+' / '+fmtGB(s.memTotal)+' ('+s.memPct+'%)';w.querySelector('#sysmembar').style.width=s.memPct+'%';
+      const up=s.uptime;w.querySelector('#sysup').textContent='Açık: '+Math.floor(up/3600)+'sa '+Math.floor((up%3600)/60)+'dk';
+      w.querySelector('#syscores').textContent=s.cores+' çekirdek';
+    }
+    try{ if(navigator.getBattery){const b=await navigator.getBattery();const pct=Math.round(b.level*100);w.querySelector('#sysbat').textContent=pct+'%'+(b.charging?' ⚡':'');w.querySelector('#sysbatbar').style.width=pct+'%';}else{w.querySelector('#sysbat').textContent='—';} }catch(e){w.querySelector('#sysbat').textContent='—';}
+    setTimeout(tick,1500);
+  }
+  tick();
+}
+
+/* ===== Screenshot ===== */
+async function takeShot(btn){const out=btn.parentNode.querySelector('#shotout');out.textContent='Alınıyor…';const r=await WL.screenshot();if(r.ok){out.innerHTML='<img src="'+mediaURL(r.file)+'" style="max-width:100%;border-radius:10px;border:1px solid var(--glass-brd)"><div style="font-size:12px;color:var(--muted);margin-top:8px">Kaydedildi: '+r.file+'</div>';toast('Ekran görüntüsü kaydedildi');}else{out.innerHTML='<span style="color:#ff7b7b">Alınamadı: '+(r.error||'')+'</span>';}}
+
+/* ===== Clipboard history ===== */
+let _clip=[];
+async function loadClip(w){if(!w)return;_clip=await WL.clipGet();const el=w.querySelector('#cliplist');if(!_clip.length){el.innerHTML='<p style="color:var(--muted)">Pano boş. Bir şey kopyala (Ctrl+C), burada görünür.</p>';return;}el.innerHTML=_clip.map((t,i)=>`<div class="ncard" style="cursor:pointer" onclick="copyClip(${i})"><div class="nb" style="color:var(--text);white-space:pre-wrap;max-height:60px;overflow:hidden">${escHtml(t)}</div></div>`).join('');}
+function copyClip(i){WL.clipSet(_clip[i]).then(()=>toast('Panoya kopyalandı'));}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ===== GAMES ===== */
+const GAMES=['g2048','snake','mines','tetris'];let activeGame=null;
+/* 2048 */
+let g2048={grid:[],score:0};
+function new2048(){g2048.grid=Array.from({length:4},()=>[0,0,0,0]);g2048.score=0;add2048();add2048();draw2048();}
+function add2048(){const e=[];g2048.grid.forEach((r,i)=>r.forEach((v,j)=>{if(!v)e.push([i,j]);}));if(!e.length)return;const[i,j]=e[Math.floor(Math.random()*e.length)];g2048.grid[i][j]=Math.random()<0.9?2:4;}
+function draw2048(){const w=openWins['g2048'];if(!w)return;const col={2:'#3a4256',4:'#45506b',8:'#4f8cff',16:'#3fa7d6',32:'#6ab04c',64:'#e67e22',128:'#e74c3c',256:'#9b59b6',512:'#f1c40f',1024:'#1abc9c',2048:'#ff5f57'};
+  w.querySelector('#b2048').innerHTML=g2048.grid.map(r=>`<div style="display:flex">${r.map(v=>`<div style="width:62px;height:62px;margin:4px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${v>=1000?18:22}px;background:${v?(col[v]||'#ff5f57'):'#2a3142'};color:#fff">${v||''}</div>`).join('')}</div>`).join('');
+  w.querySelector('#s2048').textContent=g2048.score;}
+function move2048(dir){const w=openWins['g2048'];if(!w)return;let g=g2048.grid.map(r=>r.slice());const before=JSON.stringify(g);
+  const T=m=>m[0].map((_,i)=>m.map(r=>r[i]));
+  const comp=row=>{let a=row.filter(x=>x);for(let i=0;i<a.length-1;i++){if(a[i]===a[i+1]){a[i]*=2;g2048.score+=a[i];a.splice(i+1,1);}}while(a.length<4)a.push(0);return a;};
+  if(dir===0)g=g.map(r=>comp(r));else if(dir===1)g=g.map(r=>comp(r.slice().reverse()).reverse());
+  else if(dir===2){g=T(g).map(r=>comp(r));g=T(g);}else if(dir===3){g=T(g).map(r=>comp(r.slice().reverse()).reverse());g=T(g);}
+  g2048.grid=g;if(JSON.stringify(g)!==before){add2048();draw2048();}}
+/* snake */
+let snake=null;
+function newSnake(){const w=openWins['snake'];if(!w)return;const cv=w.querySelector('#csnake');if(snake&&snake.timer)clearInterval(snake.timer);
+  snake={ctx:cv.getContext('2d'),s:[[7,7]],dir:[1,0],food:[12,7],score:0,n:20,cell:15,win:w,timer:null};snake.timer=setInterval(snakeStep,120);}
+function snakeDir(k){if(!snake)return;const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[k];if(!d)return;if(d[0]===-snake.dir[0]&&d[1]===-snake.dir[1])return;snake.dir=d;}
+function snakeStep(){if(!snake||!document.body.contains(snake.win)){if(snake&&snake.timer)clearInterval(snake.timer);return;}
+  const h=[snake.s[0][0]+snake.dir[0],snake.s[0][1]+snake.dir[1]];
+  if(h[0]<0||h[1]<0||h[0]>=snake.n||h[1]>=snake.n||snake.s.some(p=>p[0]===h[0]&&p[1]===h[1])){clearInterval(snake.timer);toast('Oyun bitti! Skor: '+snake.score);return;}
+  snake.s.unshift(h);
+  if(h[0]===snake.food[0]&&h[1]===snake.food[1]){snake.score++;snake.win.querySelector('#ssnake').textContent=snake.score;snake.food=[Math.floor(Math.random()*snake.n),Math.floor(Math.random()*snake.n)];}else snake.s.pop();
+  const c=snake.ctx,cell=snake.cell;c.fillStyle='#0a0d14';c.fillRect(0,0,300,300);c.fillStyle='#4f8cff';snake.s.forEach(p=>c.fillRect(p[0]*cell+1,p[1]*cell+1,cell-2,cell-2));c.fillStyle='#ff5f57';c.fillRect(snake.food[0]*cell+1,snake.food[1]*cell+1,cell-2,cell-2);}
+/* minesweeper */
+let mines=null;
+function newMines(){const w=openWins['mines'];if(!w)return;const N=9,M=10;const grid=Array.from({length:N},()=>Array.from({length:N},()=>({m:false,o:false,f:false,n:0})));
+  let placed=0;while(placed<M){const r=Math.floor(Math.random()*N),c=Math.floor(Math.random()*N);if(!grid[r][c].m){grid[r][c].m=true;placed++;}}
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(grid[r][c].m)continue;let n=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const nr=r+dr,nc=c+dc;if(nr>=0&&nc>=0&&nr<N&&nc<N&&grid[nr][nc].m)n++;}grid[r][c].n=n;}
+  mines={grid,N,M,win:w,over:false};mines.win.querySelector('#minestat').textContent='💣 Mayın Tarlası · sağ tık = bayrak';drawMines();}
+function drawMines(){const w=mines.win;w.querySelector('#bmines').innerHTML=mines.grid.map((row,r)=>`<div style="display:flex">${row.map((c,ci)=>{let disp='',bg='#2a3142';if(c.o){if(c.m){disp='💣';bg='#e74c3c';}else{disp=c.n||'';bg='#1a1f2b';}}else if(c.f)disp='🚩';return `<div onclick="mineClick(${r},${ci},0)" oncontextmenu="mineClick(${r},${ci},1);return false" style="width:30px;height:30px;margin:1px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;background:${bg};color:${c.n===1?'#4f8cff':c.n===2?'#2ecc71':'#e67e22'}">${disp}</div>`;}).join('')}</div>`).join('');}
+function mineClick(r,c,flag){if(!mines||mines.over)return;const cell=mines.grid[r][c];if(flag){cell.f=!cell.f;drawMines();return;}if(cell.f||cell.o)return;
+  if(cell.m){cell.o=true;mines.over=true;mines.grid.forEach(row=>row.forEach(x=>{if(x.m)x.o=true;}));drawMines();mines.win.querySelector('#minestat').textContent='💥 Patladın! Yeni oyun?';return;}
+  mineFlood(r,c);drawMines();let un=0;mines.grid.forEach(row=>row.forEach(x=>{if(!x.o&&!x.m)un++;}));if(un===0){mines.over=true;mines.win.querySelector('#minestat').textContent='🎉 Kazandın!';}}
+function mineFlood(r,c){const g=mines.grid,N=mines.N;if(r<0||c<0||r>=N||c>=N)return;const cell=g[r][c];if(cell.o||cell.f||cell.m)return;cell.o=true;if(cell.n===0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(dr||dc)mineFlood(r+dr,c+dc);}
+/* tetris */
+let tetris=null;
+const TPIECES=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[1,1,0],[0,1,1]],[[0,1,1],[1,1,0]]];
+const TCOL=['#4f8cff','#f1c40f','#9b59b6','#e67e22','#3498db','#2ecc71','#e74c3c'];
+function newTetris(){const w=openWins['tetris'];if(!w)return;const cv=w.querySelector('#ctetris');if(tetris&&tetris.timer)clearInterval(tetris.timer);
+  tetris={ctx:cv.getContext('2d'),win:w,cols:10,rows:20,cell:20,board:Array.from({length:20},()=>Array(10).fill(0)),score:0,timer:null,p:null};spawnT();tetris.timer=setInterval(tetrisDrop,500);drawT();}
+function spawnT(){const i=Math.floor(Math.random()*TPIECES.length);tetris.p={shape:TPIECES[i],col:TCOL[i],x:3,y:0};if(collideT(tetris.p.shape,tetris.p.x,tetris.p.y)){clearInterval(tetris.timer);toast('Tetris bitti! Skor: '+tetris.score);tetris.p=null;}}
+function collideT(sh,x,y){for(let r=0;r<sh.length;r++)for(let c=0;c<sh[r].length;c++){if(sh[r][c]){const nx=x+c,ny=y+r;if(nx<0||nx>=tetris.cols||ny>=tetris.rows)return true;if(ny>=0&&tetris.board[ny][nx])return true;}}return false;}
+function mergeT(){const{shape,x,y,col}=tetris.p;shape.forEach((row,r)=>row.forEach((v,c)=>{if(v&&y+r>=0)tetris.board[y+r][x+c]=col;}));
+  for(let r=tetris.rows-1;r>=0;r--){if(tetris.board[r].every(v=>v)){tetris.board.splice(r,1);tetris.board.unshift(Array(tetris.cols).fill(0));tetris.score+=10;r++;}}
+  tetris.win.querySelector('#stetris').textContent=tetris.score;}
+function tetrisDrop(){if(!tetris||!document.body.contains(tetris.win)){if(tetris&&tetris.timer)clearInterval(tetris.timer);return;}if(!tetris.p)return;if(!collideT(tetris.p.shape,tetris.p.x,tetris.p.y+1))tetris.p.y++;else{mergeT();spawnT();}drawT();}
+function tetrisKey(k){if(!tetris||!tetris.p)return;const p=tetris.p;if(k==='ArrowLeft'&&!collideT(p.shape,p.x-1,p.y))p.x--;else if(k==='ArrowRight'&&!collideT(p.shape,p.x+1,p.y))p.x++;else if(k==='ArrowDown'&&!collideT(p.shape,p.x,p.y+1))p.y++;else if(k==='ArrowUp'){const rot=p.shape[0].map((_,i)=>p.shape.map(r=>r[i]).reverse());if(!collideT(rot,p.x,p.y))p.shape=rot;}drawT();}
+function drawT(){if(!tetris)return;const c=tetris.ctx,cell=tetris.cell;c.fillStyle='#0a0d14';c.fillRect(0,0,200,400);
+  for(let r=0;r<tetris.rows;r++)for(let col=0;col<tetris.cols;col++){if(tetris.board[r][col]){c.fillStyle=tetris.board[r][col];c.fillRect(col*cell+1,r*cell+1,cell-2,cell-2);}}
+  if(tetris.p){const{shape,x,y,col}=tetris.p;c.fillStyle=col;shape.forEach((row,r)=>row.forEach((v,cc)=>{if(v&&y+r>=0)c.fillRect((x+cc)*cell+1,(y+r)*cell+1,cell-2,cell-2);}));}}
+
+/* ===== Personalization: dock magnify, startup sound, themes ===== */
+function dockMagnify(){const dock=$('#dock');if(!dock)return;dock.onmousemove=e=>{dock.querySelectorAll('.dockapp').forEach(a=>{const r=a.getBoundingClientRect();const cx=r.left+r.width/2;const d=Math.abs(e.clientX-cx);const sc=Math.max(1,1.55-d/150);a.style.transform='translateY('+(-(sc-1)*20)+'px) scale('+sc+')';});};dock.onmouseleave=()=>dock.querySelectorAll('.dockapp').forEach(a=>a.style.transform='');}
+function playStartupSound(){if(store.get('sound',true)===false)return;try{const ac=new (window.AudioContext||window.webkitAudioContext)();const now=ac.currentTime;[523.25,659.25,783.99].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f;o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(0,now+i*0.12);g.gain.linearRampToValueAtTime(0.16,now+i*0.12+0.02);g.gain.exponentialRampToValueAtTime(0.001,now+i*0.12+0.9);o.start(now+i*0.12);o.stop(now+i*0.12+0.95);});}catch(e){}}
+function setWallAnim(name){const d=$('#desktop');d.className=d.className.replace(/\bwp-\w+/g,'').trim();d.style.background='';d.classList.add('wp-'+name);store.set('wallAnim',name);store.set('wall','');}
+function applyPreset(acc,wall){document.documentElement.style.setProperty('--accent',acc);store.set('accent',acc);setWallAnim(wall);toast('Tema uygulandı');}
+
+/* ===== Security: app lock, screen time, profiles ===== */
+let _unlocked={};
+function openAppLock(){const locked=store.get('lockedApps',[]);const lockable=APPS.filter(a=>a[3]||a[0]==='realapps');
+  const body=`<div style="text-align:left;max-height:230px;overflow:auto;margin:6px 0 4px">${lockable.map(a=>`<label class="check" style="margin:4px 0"><input type="checkbox" data-lock="${a[0]}" ${locked.includes(a[0])?'checked':''}> ${a[2]} ${a[1]}</label>`).join('')}</div>`;
+  showModal('Uygulama kilidi','Kilitlenecek uygulamaları seç — açarken WinLaunch şifren sorulur.'+body,[
+    {label:'Vazgeç',ghost:true,fn:closeModal},
+    {label:'Kaydet',fn:()=>{const sel=[...window._modal.querySelectorAll('[data-lock]')].filter(c=>c.checked).map(c=>c.dataset.lock);store.set('lockedApps',sel);_unlocked={};closeModal();toast('Kilitli uygulamalar güncellendi');}}
+  ]);}
+function promptAppUnlock(id){const pr=store.get('profile');showModal('🔒 Kilitli uygulama','Açmak için WinLaunch şifreni gir.',[
+  {label:'Vazgeç',ghost:true,fn:closeModal},
+  {label:'Aç',fn:()=>{const v=window._modal.querySelector('#modalInput').value;if(pr&&v===pr.pass){_unlocked[id]=true;closeModal();openApp(id);}else toast('Hatalı şifre');}}
+],true);}
+function setTimeLimit(min){store.set('timeLimit',min);store.set('usage',{d:new Date().toDateString(),s:0});toast(min?('Ekran süresi: '+min+' dk'):'Süre sınırı kapalı');}
+function checkTimeLimit(){const lim=store.get('timeLimit',0);if(!lim)return;const today=new Date().toDateString();let u=store.get('usage',{d:today,s:0});if(u.d!==today)u={d:today,s:0};u.s+=5;store.set('usage',u);if(u.s>=lim*60){store.set('usage',{d:today,s:0});toast('Ekran süresi doldu ('+lim+' dk) — kilitleniyor');lockNow();}}
+setInterval(()=>{if(!$('#desktop').classList.contains('hidden'))checkTimeLimit();},5000);
+function allProfiles(){let ps=store.get('profiles',[]);const cur=store.get('profile');if(cur&&!ps.find(p=>p.name===cur.name))ps=[cur,...ps];return ps;}
+function switchUser(){const ps=allProfiles();const body='<div style="text-align:left;margin:6px 0">'+ps.map((p,i)=>`<div class="opt" onclick="pickUser(${i})"><span class="ic">${p.avatar||'👤'}</span><div class="meta">${p.name}</div></div>`).join('')+'</div>';showModal('Kullanıcı değiştir','Bir profil seç:'+body,[
+  {label:'Yeni profil',ghost:true,fn:()=>{closeModal();go('s-profile');}},
+  {label:'Kapat',fn:closeModal}
+]);}
+function pickUser(i){const ps=allProfiles();store.set('profile',ps[i]);closeModal();lockNow();}
+
+/* ============================================================
+   REAL mini-apps (camera, voice, paint, code, converter, clocks…)
+   ============================================================ */
+const LINKS={facetime:['https://meet.google.com','Google Meet'],podcast:['https://open.spotify.com','Spotify'],tv:['https://youtube.com','YouTube'],news:['https://news.google.com','Google Haberler'],stocks:['https://finance.yahoo.com','Yahoo Finance'],translate:['https://translate.google.com','Google Çeviri'],dictionary:['https://sozluk.gov.tr','TDK Sözlük']};
+function reopenApp(id){if(openWins[id]){closeWin(id);openApp(id);}}
+
+/* mail */
+function sendMail(btn){const w=btn.closest('.appwin');const to=w.querySelector('#mto').value,su=w.querySelector('#msub').value,bo=w.querySelector('#mbody').value;WL.openUrl('mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(su)+'&body='+encodeURIComponent(bo));toast('Mail uygulaması açılıyor…');}
+/* camera */
+async function startCam(w){try{const stream=await navigator.mediaDevices.getUserMedia({video:true});const v=w.querySelector('#camv');if(v){v.srcObject=stream;w._stream=stream;}}catch(e){const v=w.querySelector('#camv');if(v)v.outerHTML='<p style="color:var(--muted);padding:30px">Kamera erişimi yok ya da kamera bulunamadı.</p>';}}
+function camShot(btn){const w=btn.closest('.appwin');const v=w.querySelector('#camv');if(!v||!v.videoWidth)return;const cv=document.createElement('canvas');cv.width=v.videoWidth;cv.height=v.videoHeight;cv.getContext('2d').drawImage(v,0,0);w.querySelector('#camout').innerHTML='<img src="'+cv.toDataURL()+'" style="max-width:100%;border-radius:8px;margin-top:8px"><br><a href="'+cv.toDataURL()+'" download="foto.png" class="btn ghost" style="display:inline-block;margin-top:6px;text-decoration:none">İndir</a>';}
+/* voice */
+let _rec=null,_chunks=[];
+async function voiceToggle(btn){const w=openWins['voice'];if(!_rec||_rec.state==='inactive'){try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});_rec=new MediaRecorder(stream);_chunks=[];_rec.ondataavailable=e=>_chunks.push(e.data);_rec.onstop=()=>{const url=URL.createObjectURL(new Blob(_chunks,{type:'audio/webm'}));w.querySelector('#voicelist').innerHTML='<audio src="'+url+'" controls style="width:100%"></audio>';stream.getTracks().forEach(t=>t.stop());};_rec.start();btn.textContent='■ Durdur';w.querySelector('#voicestat').textContent='🔴';}catch(e){toast('Mikrofon erişimi yok');}}else{_rec.stop();btn.textContent='Kaydet';w.querySelector('#voicestat').textContent='🎤';}}
+/* paint */
+function initPaint(w){const cv=w.querySelector('#pcanvas');const ctx=cv.getContext('2d');let draw=false;const pos=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*(cv.width/r.width),(e.clientY-r.top)*(cv.height/r.height)];};
+  cv.onmousedown=e=>{draw=true;const[x,y]=pos(e);ctx.beginPath();ctx.moveTo(x,y);};
+  cv.onmousemove=e=>{if(!draw)return;const[x,y]=pos(e);ctx.lineTo(x,y);ctx.strokeStyle=w.querySelector('#pcolor').value;ctx.lineWidth=w.querySelector('#psize').value;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();};
+  window.addEventListener('mouseup',()=>draw=false);}
+function paintClear(btn){const cv=btn.closest('.appwin').querySelector('#pcanvas');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);}
+function paintSave(btn){const cv=btn.closest('.appwin').querySelector('#pcanvas');const a=document.createElement('a');a.href=cv.toDataURL();a.download='cizim.png';a.click();}
+/* code */
+function initCode(w){const t=w.querySelector('#codearea');t.value=store.get('code','');t.addEventListener('input',()=>store.set('code',t.value));}
+/* disk */
+async function initDisk(w){try{const e=await navigator.storage.estimate();w.querySelector('#diskinfo').innerHTML='WinLaunch veri kullanımı:<br><b>'+(e.usage/1048576).toFixed(1)+' MB</b> / '+(e.quota/1073741824).toFixed(1)+' GB ayrılmış';}catch(err){w.querySelector('#diskinfo').textContent='Bilgi alınamadı.';}}
+/* unit converter */
+function unitBody(){return `<div><h3 style="margin-bottom:12px">📐 Birim Çevirici</h3>
+  <select class="input" id="utype" onchange="unitFill()"><option value="len">Uzunluk</option><option value="wt">Ağırlık</option><option value="tmp">Sıcaklık</option></select>
+  <div class="row" style="margin:0"><input class="input" id="uin" value="1" oninput="unitCalc()" style="-webkit-user-select:text;user-select:text"><select class="input" id="ufrom" onchange="unitCalc()"></select></div>
+  <div style="text-align:center;font-size:13px;color:var(--muted);margin:2px">↓</div>
+  <div class="row" style="margin:0"><input class="input" id="uout" readonly><select class="input" id="uto" onchange="unitCalc()"></select></div></div>`;}
+const UNITS={len:{m:1,km:1000,cm:0.01,mm:0.001,inç:0.0254,ft:0.3048,mil:1609.34},wt:{g:1,kg:1000,mg:0.001,lb:453.592,oz:28.3495},tmp:{'°C':'C','°F':'F','K':'K'}};
+function unitFill(){const w=openWins['calc2'];if(!w)return;const t=w.querySelector('#utype').value;const keys=Object.keys(UNITS[t]);['#ufrom','#uto'].forEach(s=>w.querySelector(s).innerHTML=keys.map(k=>`<option>${k}</option>`).join(''));w.querySelector('#uto').selectedIndex=Math.min(1,keys.length-1);unitCalc();}
+function unitCalc(){const w=openWins['calc2'];if(!w)return;const t=w.querySelector('#utype').value;const v=parseFloat(w.querySelector('#uin').value)||0;const f=w.querySelector('#ufrom').value,to=w.querySelector('#uto').value;let out;
+  if(t==='tmp'){const fu=UNITS.tmp[f],tu=UNITS.tmp[to];let c=fu==='C'?v:fu==='F'?(v-32)*5/9:v-273.15;out=tu==='C'?c:tu==='F'?c*9/5+32:c+273.15;}
+  else out=v*UNITS[t][f]/UNITS[t][to];
+  w.querySelector('#uout').value=Math.round(out*10000)/10000;}
+/* timer */
+let _tmr={sec:0,timer:null};
+function tmrAdd(s){_tmr.sec=Math.max(0,_tmr.sec+s);tmrDisp();}
+function tmrDisp(){const w=openWins['timer2'];if(!w)return;const m=Math.floor(_tmr.sec/60),s=_tmr.sec%60;w.querySelector('#tmrdisp').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function tmrStart(){if(_tmr.timer)return;_tmr.timer=setInterval(()=>{if(_tmr.sec<=0){clearInterval(_tmr.timer);_tmr.timer=null;toast('⏰ Süre doldu!');playStartupSound();return;}_tmr.sec--;tmrDisp();},1000);}
+function tmrReset(){if(_tmr.timer){clearInterval(_tmr.timer);_tmr.timer=null;}_tmr.sec=0;tmrDisp();}
+/* stopwatch */
+let _sw={ms:0,t:null,run:false};
+function swToggle(btn){if(_sw.run){clearInterval(_sw.t);_sw.run=false;btn.textContent='Başlat';}else{_sw.run=true;btn.textContent='Durdur';const start=Date.now()-_sw.ms;_sw.t=setInterval(()=>{_sw.ms=Date.now()-start;swDisp();},50);}}
+function swDisp(){const w=openWins['stopwatch'];if(!w)return;const m=Math.floor(_sw.ms/60000),s=Math.floor(_sw.ms/1000)%60,d=Math.floor(_sw.ms/100)%10;w.querySelector('#swdisp').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+d;}
+function swReset(){clearInterval(_sw.t);_sw.run=false;_sw.ms=0;const w=openWins['stopwatch'];if(w){w.querySelector('#swdisp').textContent='00:00.0';w.querySelector('#swbtn').textContent='Başlat';}}
+/* world clock */
+function initWClock(w){const zones=[['İstanbul','Europe/Istanbul'],['Londra','Europe/London'],['New York','America/New_York'],['Tokyo','Asia/Tokyo'],['Los Angeles','America/Los_Angeles'],['Dubai','Asia/Dubai']];
+  (function tick(){if(!document.body.contains(w))return;w.querySelector('#wclockbody').innerHTML='<h3 style="margin-bottom:10px">🌍 Dünya Saati</h3>'+zones.map(z=>{const t=new Date().toLocaleTimeString('tr-TR',{timeZone:z[1],hour:'2-digit',minute:'2-digit'});return `<div class="set-row"><span>${z[0]}</span><b style="font-variant-numeric:tabular-nums">${t}</b></div>`;}).join('');setTimeout(tick,1000);})();}
+/* battery */
+async function initBatt(w){if(navigator.getBattery){try{const b=await navigator.getBattery();const upd=()=>{const pct=Math.round(b.level*100);w.querySelector('#battpct').textContent=pct+'%';w.querySelector('#battbig').textContent=b.charging?'🔌':(pct>20?'🔋':'🪫');w.querySelector('#battinfo').textContent=b.charging?'Şarj oluyor':'Pil ile çalışıyor';};upd();b.onlevelchange=upd;b.onchargingchange=upd;}catch(e){w.querySelector('#battpct').textContent='—';w.querySelector('#battinfo').textContent='Pil bilgisi yok';}}else{w.querySelector('#battpct').textContent='—';w.querySelector('#battinfo').textContent='Masaüstü olabilir (pil yok)';}}
+/* fonts */
+function fontsBody(){const fonts=['Segoe UI','Arial','Times New Roman','Courier New','Georgia','Verdana','Comic Sans MS','Impact','Tahoma','Trebuchet MS'];return '<h3 style="margin-bottom:12px">🔤 Yazı Tipleri</h3>'+fonts.map(f=>`<div class="ncard"><div style="font-family:'${f}';font-size:18px">${f}</div><div style="font-family:'${f}';color:var(--muted);font-size:14px">Merhaba Dünya · 123</div></div>`).join('');}
+/* health */
+function healthBody(){const h=store.get('health',{steps:0,water:0});return `<div style="text-align:center"><h3 style="margin-bottom:12px">❤️ Sağlık</h3>
+  <div class="ncard"><div>👣 Adım: <b id="hsteps">${h.steps}</b></div><div class="row" style="justify-content:center;margin-top:8px"><button class="btn ghost" onclick="healthAdd('steps',100)">+100</button><button class="btn ghost" onclick="healthAdd('steps',1000)">+1000</button></div></div>
+  <div class="ncard"><div>💧 Su: <b id="hwater">${h.water}</b> bardak</div><div class="row" style="justify-content:center;margin-top:8px"><button class="btn ghost" onclick="healthAdd('water',1)">+1 bardak</button></div></div></div>`;}
+function healthAdd(k,v){const h=store.get('health',{steps:0,water:0});h[k]=(h[k]||0)+v;store.set('health',h);const w=openWins['health'];if(w)w.querySelector(k==='steps'?'#hsteps':'#hwater').textContent=h[k];}
+/* wallet */
+function walletBody(){const cards=store.get('wallet',[]);return `<div style="display:flex;flex-direction:column;height:100%"><h3 style="margin-bottom:10px">💳 Cüzdan</h3><div class="row" style="margin:0 0 10px"><input class="input" id="wcard" placeholder="Kart adı (örn. Banka ****1234)" style="margin:0;-webkit-user-select:text;user-select:text"><button class="btn" onclick="walletAdd()">+</button></div><div class="scroll" id="walletlist" style="flex:1">${cards.map((c,i)=>`<div class="ncard" style="background:linear-gradient(135deg,var(--accent),#7d5cff)"><div class="nt" style="color:#fff">${escHtml(c)}<small style="color:#eee;cursor:pointer" onclick="walletDel(${i})">sil</small></div></div>`).join('')||'<p style="color:var(--muted)">Henüz kart yok.</p>'}</div></div>`;}
+function walletAdd(){const w=openWins['wallet'];const v=w.querySelector('#wcard').value.trim();if(!v)return;const c=store.get('wallet',[]);c.push(v);store.set('wallet',c);reopenApp('wallet');}
+function walletDel(i){const c=store.get('wallet',[]);c.splice(i,1);store.set('wallet',c);reopenApp('wallet');}
+/* reminders */
+function remindersBody(){const r=store.get('reminders',[]);return `<div style="display:flex;flex-direction:column;height:100%"><h3 style="margin-bottom:10px">📌 Hatırlatıcılar</h3><div class="row" style="margin:0 0 10px"><input class="input" id="remin" placeholder="Hatırlatıcı…" style="margin:0;-webkit-user-select:text;user-select:text" onkeydown="if(event.key==='Enter')remAdd()"><button class="btn" onclick="remAdd()">+</button></div><div class="scroll" id="remlist" style="flex:1">${r.map((x,i)=>`<div class="todo-item ${x.done?'done':''}"><input type="checkbox" ${x.done?'checked':''} onchange="remTog(${i})"><span style="flex:1">${escHtml(x.t)}</span><span onclick="remDel(${i})" style="cursor:pointer;color:var(--muted)">✕</span></div>`).join('')||'<p style="color:var(--muted)">Yok.</p>'}</div></div>`;}
+function remAdd(){const w=openWins['reminders'];const i=w.querySelector('#remin');const v=i.value.trim();if(!v)return;const r=store.get('reminders',[]);r.push({t:v,done:false});store.set('reminders',r);reopenApp('reminders');}
+function remTog(i){const r=store.get('reminders',[]);r[i].done=!r[i].done;store.set('reminders',r);reopenApp('reminders');}
+function remDel(i){const r=store.get('reminders',[]);r.splice(i,1);store.set('reminders',r);reopenApp('reminders');}
+/* contacts */
+function contactsBody(){const c=store.get('contacts',[]);return `<div style="display:flex;flex-direction:column;height:100%"><h3 style="margin-bottom:10px">👥 Kişiler</h3><div class="row" style="margin:0 0 6px"><input class="input" id="cname" placeholder="İsim" style="margin:0;-webkit-user-select:text;user-select:text"></div><div class="row" style="margin:0 0 10px"><input class="input" id="cphone" placeholder="Telefon" style="margin:0;-webkit-user-select:text;user-select:text"><button class="btn" onclick="contactAdd()">+</button></div><div class="scroll" id="contactlist" style="flex:1">${c.map((x,i)=>`<div class="ncard"><div class="nt">${escHtml(x.n)}<small style="cursor:pointer" onclick="contactDel(${i})">sil</small></div><div class="nb">${escHtml(x.p)}</div></div>`).join('')||'<p style="color:var(--muted)">Kişi yok.</p>'}</div></div>`;}
+function contactAdd(){const w=openWins['contacts'];const n=w.querySelector('#cname').value.trim(),p=w.querySelector('#cphone').value.trim();if(!n)return;const c=store.get('contacts',[]);c.push({n,p});store.set('contacts',c);reopenApp('contacts');}
+function contactDel(i){const c=store.get('contacts',[]);c.splice(i,1);store.set('contacts',c);reopenApp('contacts');}
+/* messages */
+function addMsg(){const w=openWins['messages'];if(!w)return;const i=w.querySelector('#msgin');const v=i.value.trim();if(!v)return;const m=store.get('messages',[]);m.push(v);store.set('messages',m);i.value='';renderMsg(w);}
+function renderMsg(w){const m=store.get('messages',[]);const f=w.querySelector('#msgfeed');f.innerHTML=m.map(x=>`<div style="background:var(--accent);color:#fff;padding:8px 12px;border-radius:12px;margin:6px 0 6px auto;max-width:80%;width:fit-content">${escHtml(x)}</div>`).join('');f.scrollTop=9e9;}
+/* hardware honest card */
+function hwBody(a){const map={home:'Akıllı ev cihazları',vpn:'VPN bağlantısı',firewall:'Güvenlik duvarı',antivirus:'Antivirüs',recorder:'Ekran kaydı',mirror:'Ekran yansıtma',bluetooth:'Bluetooth',airdrop:'Dosya paylaşımı',nfc:'NFC',automation:'Otomasyon',shortcuts:'Kısayollar',facetime:'Görüntülü görüşme'};return `<div style="text-align:center;padding:28px 16px"><div style="font-size:60px;margin-bottom:12px">${a[2]}</div><h3 style="margin-bottom:10px">${a[1]}</h3><p style="color:var(--muted);line-height:1.6">${map[a[0]]||a[1]}, donanım veya işletim sistemi ayarı gerektirir; bir launcher içinden gerçek anlamda kontrol edilemez. Sahte göstermek istemedim.<br><br>Windows'ta ilgili ayarı <b>Başlat → Ayarlar</b>'dan açabilirsin.</p></div>`;}
+/* weather */
+function weatherBody(){return `<div style="text-align:center"><div style="font-size:70px">⛅</div><div style="font-size:44px">18°</div><p style="color:var(--muted)">İstanbul · Parçalı Bulutlu</p><div style="display:flex;justify-content:space-around;margin-top:20px">${['Pzt 17°','Sal 19°','Çar 16°','Per 20°','Cum 21°'].map(d=>`<div style="font-size:13px"><div>${d.split(' ')[0]}</div><div style="font-size:22px;margin:4px 0">⛅</div><div>${d.split(' ')[1]}</div></div>`).join('')}</div></div>`;}
+/* ===== File Explorer — REAL filesystem (demo fallback) ===== */
+const feState={cur:null,roots:null,win:null,demo:false};
+function filesBody(){return `<div class="fe"><div class="side" id="feside"></div><div class="main"><div class="path"><span class="back" onclick="feBack()">◀ Geri</span><span id="fepath" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span class="back" onclick="feReveal()" title="Dosya Gezgini'nde aç">⧉</span></div><div class="grid" id="fegrid"></div></div></div>`;}
+function esc(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function fileIcon(ext){const m={png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',webp:'🖼️',bmp:'🖼️',svg:'🖼️',mp3:'🎵',wav:'🎵',flac:'🎵',m4a:'🎵',mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',webm:'🎬',pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',csv:'📗',ppt:'📙',pptx:'📙',zip:'🗜️',rar:'🗜️','7z':'🗜️',gz:'🗜️',exe:'⚙️',msi:'⚙️',bat:'⚙️',txt:'📄',md:'📄',js:'📜',ts:'📜',html:'🌐',htm:'🌐',css:'🎨',json:'🧩',py:'🐍',java:'☕',c:'📎',cpp:'📎',lnk:'🔗'};return m[ext]||'📄';}
+async function feInit(w){
+  feState.win=w;
+  if(window.winlaunch){
+    feState.demo=false;
+    feState.roots=await winlaunch.fsRoots();
+    feState.cur=(feState.roots&&feState.roots.length)?feState.roots[0].path:null;
+  }else{
+    feState.demo=true;feState.roots=[{name:'Bu Bilgisayar',path:'/',ic:'💻'}];feState.cur='/';
+  }
+  feSide();feList();
+}
+function feSide(){const w=feState.win;if(!w)return;
+  w.querySelector('#feside').innerHTML=(feState.roots||[]).map(r=>`<div class="si ${feState.cur&&feState.cur.indexOf(r.path)===0?'on':''}" onclick="feGoPath('${esc(r.path)}')"><span>${r.ic||'📁'}</span>${r.name}</div>`).join('');
+}
+async function feList(){
+  const w=feState.win;if(!w||!document.body.contains(w))return;
+  const grid=w.querySelector('#fegrid'),pathEl=w.querySelector('#fepath');
+  pathEl.textContent=feState.cur||'';
+  if(feState.demo){grid.innerHTML=['Masaüstü','Belgeler','İndirilenler','Resimler'].map(n=>`<div class="item"><div class="ic">📁</div><span>${n}</span></div>`).join('')+`<div class="item"><div class="ic">📄</div><span>not.txt</span></div>`;return;}
+  grid.innerHTML='<p style="color:var(--muted)">Yükleniyor…</p>';
+  const res=await winlaunch.fsList(feState.cur);
+  if(!res.ok){grid.innerHTML=`<p style="color:#ff7b7b">⚠ ${res.error||'Klasör açılamadı'}</p>`;return;}
+  if(!res.items.length){grid.innerHTML='<p style="color:var(--muted)">Bu klasör boş.</p>';return;}
+  grid.innerHTML=res.items.map(it=>`<div class="item" ondblclick="feEntry(${it.dir},'${esc(it.name)}')" title="${esc(it.name)}"><div class="ic">${it.dir?'📁':fileIcon(it.ext)}</div><span>${it.name.length>18?it.name.slice(0,16)+'…':it.name}</span></div>`).join('');
+  feSide();
+}
+async function feEntry(isDir,name){
+  if(isDir){feState.cur=await winlaunch.fsJoin(feState.cur,name);feList();return;}
+  const p=await winlaunch.fsJoin(feState.cur,name);const ext=(name.split('.').pop()||'').toLowerCase();
+  if(['png','jpg','jpeg','gif','webp','bmp','svg'].includes(ext))return openMedia('image',p,name);
+  if(['mp4','webm','mkv','mov'].includes(ext))return openMedia('video',p,name);
+  if(['mp3','wav','flac','m4a','ogg'].includes(ext))return openMedia('audio',p,name);
+  if(ext==='pdf')return openMedia('pdf',p,name);
+  toast(name+' açılıyor…');const r=await winlaunch.fsOpen(p);if(!r.ok)toast('Açılamadı: '+(r.error||''));
+}
+async function feBack(){if(feState.demo)return;const p=await winlaunch.fsParent(feState.cur);if(p&&p!==feState.cur){feState.cur=p;feList();}}
+function feGoPath(p){if(feState.demo)return;feState.cur=p;feList();}
+function feReveal(){if(!feState.demo&&feState.cur&&window.winlaunch)winlaunch.fsReveal(feState.cur);}
+
+/* ===== Real installed apps ===== */
+let _realAppsCache=null,_realApps=[];
+async function ensureRealApps(){if(_realAppsCache)return _realAppsCache;if(!window.winlaunch){_realAppsCache=[];return [];}try{_realAppsCache=await winlaunch.appsList();}catch(e){_realAppsCache=[];}return _realAppsCache;}
+async function loadRealApps(w){
+  const grid=w.querySelector('#appsgrid');
+  if(!window.winlaunch){grid.innerHTML='<p style="color:var(--muted)">Gerçek uygulamalar yalnızca .exe sürümünde (kendi bilgisayarında) görünür.</p>';return;}
+  grid.innerHTML='<p style="color:var(--muted)">Kurulu uygulamalar taranıyor…</p>';
+  _realApps=await ensureRealApps();
+  if(!_realApps.length){grid.innerHTML='<p style="color:var(--muted)">Uygulama bulunamadı.</p>';return;}
+  grid.innerHTML=_realApps.map((a,i)=>`<div class="lpapp" data-ai="${i}" data-name="${esc(a.name.toLowerCase())}" ondblclick="launchReal('${esc(a.path)}','${esc(a.name)}')"><div class="ic" style="width:66px;height:66px">📦</div><span>${a.name.length>20?a.name.slice(0,18)+'…':a.name}</span></div>`).join('');
+  // lazy-load real icons
+  _realApps.forEach(async(a,i)=>{const d=await winlaunch.appsIcon(a.path);if(d){const el=w.querySelector('[data-ai="'+i+'"] .ic');if(el)el.innerHTML='<img src="'+d+'" style="width:46px;height:46px;object-fit:contain">';}});
+}
+function filterRealApps(q){const w=openWins['realapps'];if(!w)return;q=(q||'').toLowerCase();w.querySelectorAll('#appsgrid .lpapp').forEach(el=>{el.style.display=el.dataset.name.includes(q)?'':'none';});}
+async function launchReal(p,name){toast(name+' başlatılıyor…');const r=await winlaunch.appsLaunch(p);if(!r.ok)toast('Başlatılamadı: '+(r.error||''));}
+
+/* settings (editable UI) */
+function settingsBody(){
+  const pr=store.get('profile')||{name:'Kullanıcı'};
+  const accents=['#4f8cff','#28c840','#ff5f57','#febc2e','#7d5cff','#ff7ab6','#19c3c3'];
+  const walls=['linear-gradient(135deg,#1b2440 0%,#0b0d13 55%,#121a2e 100%)','linear-gradient(135deg,#2d1b4e,#0b0d13)','linear-gradient(135deg,#0f3d3e,#0b0d13)','linear-gradient(135deg,#3d1f1f,#0b0d13)','linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)'];
+  return `<h3 style="margin-bottom:14px">Ayarlar</h3>
+  <div class="set-row"><span>Kullanıcı adı</span><b>${pr.name}</b></div>
+  <div class="set-row"><span>Vurgu rengi</span><div class="swatch">${accents.map(c=>`<div class="s ${c==='var(--accent)'?'sel':''}" style="background:${c}" onclick="setAccent('${c}',this)"></div>`).join('')}</div></div>
+  <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:10px"><span>Duvar kağıdı</span><div style="display:flex;gap:10px;flex-wrap:wrap">${walls.map(w=>`<div style="width:70px;height:44px;border-radius:8px;background:${w};cursor:pointer;border:2px solid transparent" onclick="setWall(this.style.background,this)"></div>`).join('')}</div></div>
+  <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:10px"><span>Animasyonlu duvar kağıdı</span><div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn ghost" onclick="setWallAnim('aurora')">🌌 Aurora</button>
+    <button class="btn ghost" onclick="setWallAnim('sunset')">🌇 Gün Batımı</button>
+    <button class="btn ghost" onclick="setWallAnim('ocean')">🌊 Okyanus</button>
+    <button class="btn ghost" onclick="setWallAnim('dream')">💜 Rüya</button></div></div>
+  <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:10px"><span>Tema mağazası</span><div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn ghost" onclick="applyPreset('#4f8cff','aurora')">Gece Mavisi</button>
+    <button class="btn ghost" onclick="applyPreset('#ff7a59','sunset')">Gün Batımı</button>
+    <button class="btn ghost" onclick="applyPreset('#2ecc71','ocean')">Orman</button>
+    <button class="btn ghost" onclick="applyPreset('#9b59b6','dream')">Mor Rüya</button></div></div>
+  <div class="set-row"><span>Açılış sesi</span><div class="row" style="margin:0"><button class="btn ghost" onclick="store.set('sound',true);playStartupSound();toast('Açılış sesi AÇIK')">Aç</button><button class="btn ghost" onclick="store.set('sound',false);toast('Açılış sesi KAPALI')">Kapat</button></div></div>
+  <div class="set-row"><span>Uygulama kilidi<br><small style="color:var(--muted)">Seçili uygulamalar şifre ister</small></span><button class="btn ghost" onclick="openAppLock()">🔐 Ayarla</button></div>
+  <div class="set-row"><span>Ekran süresi sınırı</span><div class="row" style="margin:0"><button class="btn ghost" onclick="setTimeLimit(30)">30dk</button><button class="btn ghost" onclick="setTimeLimit(60)">60dk</button><button class="btn ghost" onclick="setTimeLimit(0)">Kapat</button></div></div>
+  <div class="set-row"><span>Kullanıcılar</span><button class="btn ghost" onclick="switchUser()">👥 Profiller</button></div>
+  <div class="set-row"><span>Dil</span><b>${store.get('lang','TR')}</b></div>
+  <div class="set-row"><span>WiFi</span><b>${store.get('wifi','—')}</b></div>
+  <div class="set-row"><span>Masaüstü widget'ları</span><div class="row" style="margin:0"><button class="btn ghost" onclick="showAllWidgets()">⏰ Saat</button><button class="btn ghost" onclick="showWidget('weather')">⛅</button><button class="btn ghost" onclick="showWidget('note')">📝</button></div></div>
+  <div class="set-row"><span>Kiosk kilidi<br><small style="color:var(--muted)">Çıkış yalnızca Ctrl+Shift+Alt+Esc</small></span><div class="row" style="margin:0"><button class="btn" style="background:#ff5f57" onclick="askKiosk()">🔒 Kilitle</button><button class="btn ghost" onclick="enableKiosk(false)">Aç</button></div></div>
+  <div class="set-row"><span>Spotlight</span><button class="btn ghost" onclick="openSpotlight()">🔍 Aç (⌘+Space)</button></div>
+  <div class="set-row"><span>Açılışta otomatik başlat<br><small style="color:var(--muted)">WinLogon/Explorer değişmez</small></span><div class="row" style="margin:0"><button class="btn ghost" onclick="WL.setAutostart(true).then(()=>toast('Açılışta başlatma AÇIK'))">Aç</button><button class="btn ghost" onclick="WL.setAutostart(false).then(()=>toast('Açılışta başlatma KAPALI'))">Kapat</button></div></div>
+  <div class="set-row"><span>Tam ekran</span><button class="btn ghost" onclick="WL.full()">Aç / Kapa</button></div>
+  <div class="set-row"><span>Oturumu kilitle</span><button class="btn ghost" onclick="lockNow()">🔒 Kilitle</button></div>
+  <div class="set-row"><span>WinLaunch'tan çık</span><button class="btn" style="background:#ff5f57" onclick="WL.close()">Kapat</button></div>
+  <p style="color:var(--muted);font-size:12px;margin-top:14px">WinLaunch 1.0.0 · WinLogon ve Explorer değiştirilmez.</p>`;
+}
+function setAccent(c,el){store.set('accent',c);document.documentElement.style.setProperty('--accent',c);el.parentNode.querySelectorAll('.s').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+function setWall(w,el){store.set('wall',w);store.set('wallAnim',null);const d=$('#desktop');d.className=d.className.replace(/\bwp-\w+/g,'').trim();document.documentElement.style.setProperty('--wallpaper',w);d.style.background=w;}
+function applyTheme(){const a=store.get('accent');if(a)document.documentElement.style.setProperty('--accent',a);const wa=store.get('wallAnim');const w=store.get('wall');const d=$('#desktop');d.className=d.className.replace(/\bwp-\w+/g,'').trim();if(wa){d.classList.add('wp-'+wa);d.style.background='';}else if(w){document.documentElement.style.setProperty('--wallpaper',w);d.style.background=w;}}
+
+/* ---------- context menu (right click) ---------- */
+const CTX=[
+  ['Yeni Klasör','⌘N',()=>toast('Yeni klasör oluşturuldu')],
+  ['Yenile','⌘R',()=>mountDesktop()],
+  ['sep'],
+  ['Launchpad','F4',()=>toggleLaunchpad()],
+  ['Terminal Aç','',()=>openApp('terminal')],
+  ['Duvar Kağıdını Değiştir','',()=>openApp('settings')],
+  ['sep'],
+  ['Görünüm','',()=>openApp('settings')],
+  ['Ayarlar','⌘,',()=>openApp('settings')],
+  ['sep'],
+  ['Oturumu Kilitle','',()=>lockNow()]
+];
+function showCtx(x,y){const c=$('#ctx');c.innerHTML=CTX.map((m,i)=>m[0]==='sep'?'<div class="sep"></div>':`<div class="ci" data-i="${i}"><span>${m[0]}</span><small>${m[1]}</small></div>`).join('');
+  c.style.display='block';const vw=innerWidth,vh=innerHeight;c.style.left=Math.min(x,vw-220)+'px';c.style.top=Math.min(y,vh-c.offsetHeight-10)+'px';
+  c.querySelectorAll('.ci').forEach(el=>el.onclick=()=>{CTX[+el.dataset.i][2]();hideCtx();});
+}
+function hideCtx(){$('#ctx').style.display='none';}
+document.addEventListener('contextmenu',e=>{if($('#desktop').classList.contains('hidden'))return;e.preventDefault();showCtx(e.clientX,e.clientY);});
+document.addEventListener('click',hideCtx);
+document.addEventListener('keydown',e=>{
+  const onDesk=!$('#desktop').classList.contains('hidden');
+  // Kiosk unlock backup (works when app has focus); globalShortcut handles it system-wide too
+  if(e.ctrlKey&&e.shiftKey&&e.altKey&&(e.key==='Escape'||e.code==='Escape')){e.preventDefault();enableKiosk(false);return;}
+  if((e.metaKey||e.ctrlKey)&&e.code==='Space'&&onDesk){e.preventDefault();openSpotlight();return;}
+  // game controls (arrows) when a game window is active
+  if(onDesk&&activeGame&&openWins[activeGame]&&$('#spotlight').style.display!=='flex'&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault();
+    if(activeGame==='g2048')move2048({ArrowLeft:0,ArrowRight:1,ArrowUp:2,ArrowDown:3}[e.key]);
+    else if(activeGame==='snake')snakeDir(e.key);
+    else if(activeGame==='tetris')tetrisKey(e.key);
+    return;
+  }
+  if(e.key==='Escape'){hideCtx();closeSpotlight();$('#notif').classList.remove('open');if($('#launchpad').style.display==='flex')toggleLaunchpad();}
+});
+
+/* ---------- toast + modal ---------- */
+function toast(msg){const t=document.createElement('div');t.textContent=msg;t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-brd);padding:12px 22px;border-radius:12px;z-index:900;font-size:14px';document.body.appendChild(t);setTimeout(()=>t.remove(),1800);}
+function showModal(title,body,btns,withInput){
+  const m=document.createElement('div');m.className='modal-wrap';
+  m.innerHTML=`<div class="modal"><h3>${title}</h3><div style="color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.5">${body}</div>${withInput?'<input class="input" id="modalInput" type="password" placeholder="Şifre" style="-webkit-user-select:text;user-select:text">':''}<div class="row">${btns.map((b,i)=>`<button class="btn ${b.ghost?'ghost':''}" style="flex:1" data-i="${i}">${b.label}</button>`).join('')}</div></div>`;
+  $('#modalroot').appendChild(m);window._modal=m;
+  m.querySelectorAll('button').forEach(b=>b.onclick=()=>btns[+b.dataset.i].fn());
+}
+function closeModal(){if(window._modal){window._modal.remove();window._modal=null;}}
+
+/* ---------- clocks ---------- */
+setInterval(()=>{const n=new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});const tb=$('#tbclock'),mb=$('#mbclock');if(tb)tb.textContent=n;if(mb)mb.textContent=n;},1000);
+
+/* ---------- init / boot phase routing ---------- */
+function init(){
+  renderLang();renderWifi();
+  if(window.winlaunch&&winlaunch.onKiosk){winlaunch.onKiosk(s=>{store.set('kioskPref',s);showKioskBadge(s);});}
+  const phase=store.get('phase');
+  // Real Windows: after the restart, the app auto-starts and lands here with phase='booting'
+  if(phase==='booting'){ store.set('phase','onboarding'); go('s-boot'); runBoot(); return; }
+  if(phase==='onboarding'){ go('s-lang'); return; }
+  if(phase==='ready' && store.get('profile')){ lockNow(); return; }  // existing user -> own logon
+  go('s-launch');
+}
+init();
+</script>
+</body>
+</html>

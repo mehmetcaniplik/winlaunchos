@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=WinLaunch
+Comment=WinLaunch launcher
+Exec=/opt/winlaunch/start-winlaunch.sh
+Icon=computer
+Terminal=false
+Type=Application
+Categories=System;

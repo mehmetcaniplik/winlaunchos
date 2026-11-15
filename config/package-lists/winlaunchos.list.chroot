@@ -1,0 +1,54 @@
+# --- X + session ---
+xorg
+xserver-xorg
+xinit
+lightdm
+lightdm-gtk-greeter
+openbox
+
+# --- Networking (GERÇEK internet) ---
+network-manager
+network-manager-gnome
+wireless-tools
+wpasupplicant
+
+# --- Browsers (GERÇEK tarayıcı) ---
+firefox-esr
+chromium
+
+# --- Office / PDF / DOCX ---
+libreoffice
+libreoffice-l10n-tr
+libreoffice-l10n-en-gb
+evince
+file-roller
+
+# --- Disk kurulumu (GERÇEKTEN diske yazar) ---
+calamares
+calamares-settings-debian
+
+# --- Electron runtime bağımlılıkları ---
+libgtk-3-0
+libnss3
+libgbm1
+libasound2
+libnotify4
+libxss1
+libxtst6
+
+# --- Ses + ayar ---
+pulseaudio
+pavucontrol
+policykit-1
+
+# --- Diller + yazı tipleri ---
+locales
+console-setup
+task-turkish
+fonts-dejavu
+fonts-liberation
+
+# --- Yardımcı araçlar ---
+sudo
+pcmanfm
+mesa-utils
