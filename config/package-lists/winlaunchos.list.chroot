@@ -27,7 +27,12 @@ file-roller
 calamares
 calamares-settings-debian
 
-# --- Electron runtime bağımlılıkları ---
+# --- Boot loader (ISO) ---
+isolinux
+syslinux
+syslinux-common
+
+# --- Electron runtime bagimliliklari ---
 libgtk-3-0
 libnss3
 libgbm1
@@ -41,14 +46,14 @@ pulseaudio
 pavucontrol
 policykit-1
 
-# --- Diller + yazı tipleri ---
+# --- Diller + yazi tipleri ---
 locales
 console-setup
 task-turkish
 fonts-dejavu
 fonts-liberation
 
-# --- Yardımcı araçlar ---
+# --- Yardimci araclar ---
 sudo
 pcmanfm
 mesa-utils
