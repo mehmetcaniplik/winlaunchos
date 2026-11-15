@@ -10,7 +10,7 @@ lb config noauto \
   --security false \
   --firmware-chroot false \
   --firmware-binary false \
-  --debian-installer none \
+  --debian-installer false \
   --iso-application "WinLaunchOS" \
   --iso-volume "WinLaunchOS" \
   --bootappend-live "boot=live components quiet splash username=user locales=tr_TR.UTF-8 keyboard-layouts=tr,us" \
